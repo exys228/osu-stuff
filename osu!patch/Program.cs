@@ -28,7 +28,7 @@ namespace osu_patch
 
 		public static readonly string ExecutingAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-		static int Main(string[] args)
+		static int Main(string[] args) // git test
 		{
 			// Console.ReadKey(true);
 
