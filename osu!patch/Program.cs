@@ -69,10 +69,12 @@ namespace osu_patch
 
 			ObfOsuModule = obfFile.ModuleDefMD;
 
-			/*ObfOsuModule.Write(Path.Combine(Path.GetDirectoryName(ObfOsuPath), "ooo2ndattempt.exe"), new ModuleWriterOptions(ObfOsuModule)
+#if DEBUG
+			ObfOsuModule.Write(Path.Combine(Path.GetDirectoryName(ObfOsuPath), "OsuObfModule-cflow.exe"), new ModuleWriterOptions(ObfOsuModule)
 			{
 				MetadataOptions = { Flags = MetadataFlags.KeepOldMaxStack }
-			});*/
+			});
+#endif
 
 			Message($"[MAIN]: Loaded assemblies: {CleanOsuModule.Assembly.FullName} (clean); {ObfOsuModule.Assembly.FullName} (obfuscated).");
 
@@ -99,7 +101,13 @@ namespace osu_patch
 			{
 				Message("[MAIN]: No cached dict found! Initializing DefaultNameProvider (NameMapper)...");
 
-				DefaultNameProvider.Initialize(CleanOsuModule, ObfOsuModule, Console.Out, false);
+#if DEBUG
+				TextWriter debugOut = Console.Out;
+#else
+				TextWriter debugOut = null;
+#endif
+
+				DefaultNameProvider.Initialize(CleanOsuModule, ObfOsuModule, debugOut);
 				File.WriteAllBytes(dictFile, DefaultNameProvider.Instance.Pack());
 				ObfOsuExplorer = new ModuleExplorer(ObfOsuModule);
 			}
@@ -148,9 +156,9 @@ namespace osu_patch
 			CleanOsuModule.Dispose();
 			ObfOsuModule.Dispose();
 
-			#if DEBUG
+#if DEBUG
 				Console.ReadKey(true);
-			#endif
+#endif
 
 			return overallSuccess ? 0 : 1;
 		}
