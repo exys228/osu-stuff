@@ -1,33 +1,29 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
+using OpCodes = dnlib.DotNet.Emit.OpCodes;
 
 namespace osu_patch
 {
 	public static class Patches
 	{
-		enum SubmitMode
-		{
-			None,
-			WithoutNoFail,
-			DontSubmit,
-			WithNoFail
-		}
+		private const string OsuBaseUrl = "osu.ppy.sh";
 
-		public static Patch[] PatchList =
+		public static readonly Patch[] PatchList =
 		{
 			new Patch("\"Unsigned executable\" fix", true, () =>
 			{
 				try
 				{
-					var method = CMain.ObfOsuExplorer["osu.OsuMain"]["Main"];
-
-					/*
+					/*	--   REMOVE THIS   \/ \/ \/ \/ \/ \/ \/
 						if (!AuthenticodeTools.IsTrusted(OsuMain.get_Filename()))
 						{
 							new ErrorDialog(new Exception("Unsigned executable!"), false).ShowDialog();
@@ -35,7 +31,7 @@ namespace osu_patch
 						}
 					*/
 
-					OpCode[] opc =
+					CMain.ObfOsuExplorer["osu.OsuMain"]["Main"].Editor.LocateAndRemove(new[]
 					{
 						OpCodes.Call,
 						OpCodes.Call,
@@ -49,10 +45,7 @@ namespace osu_patch
 						OpCodes.Pop,
 						OpCodes.Ldc_I4_0,
 						OpCodes.Call
-					};
-
-					method.Editor.Locate(opc);
-					method.Editor.Remove(opc.Length);
+					});
 
 					return true;
 				}
@@ -65,7 +58,6 @@ namespace osu_patch
 					var method = CMain.ObfOsuExplorer["osu.Online.BanchoClient"]["initializePrivate"];
 
 					// array5[0] = CryptoHelper.GetMd5(OsuMain.get_FullPath());
-
 					method.Editor.Locate(new[]
 					{
 						OpCodes.Call,
@@ -79,9 +71,9 @@ namespace osu_patch
 						OpCodes.Dup
 					});
 
-					// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
-
 					method.Editor.Remove(2);
+
+					// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
 					method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, CMain.ObfOsuHash));
 
 					return true;
@@ -92,11 +84,9 @@ namespace osu_patch
 			{
 				try
 				{
-					var method = CMain.ObfOsuExplorer["osu.Online.BanchoClient"]["receive"];
-					
-					// BanchoClient.Permission = (Permissions)new bInt(BanchoClient.readBuffer.get_Reader()).number;
+					var receive = CMain.ObfOsuExplorer["osu.Online.BanchoClient"]["receive"];
 
-					method.Editor.Locate(new[]
+					receive.Editor.Locate(new[]
 					{
 						OpCodes.Call,
 						OpCodes.Stsfld,
@@ -108,11 +98,32 @@ namespace osu_patch
 
 					// | 4 (supp rank)
 
-					method.Editor.Insert(new[]
+					receive.Editor.Insert(new[]
 					{
+						/*Instruction.Create(OpCodes.Ldc_I4_4),
+						Instruction.Create(OpCodes.Not),
+						Instruction.Create(OpCodes.And)*/
+						
 						Instruction.Create(OpCodes.Ldc_I4_4),
-						Instruction.Create(OpCodes.Or)
+						Instruction.Create(OpCodes.Or),
 					});
+
+					// --- TEMP REMOVE PERMISSION FOR TESTING ^^^
+
+					/*var method = CMain.ObfOsuExplorer["osu.GameModes.Menus.Menu"]["checkPermissions"];
+
+					var opc = new[]
+					{
+						OpCodes.Ldsfld,
+						OpCodes.Call,
+						OpCodes.Ldc_I4_4,
+						OpCodes.And,
+						OpCodes.Ldc_I4_0,
+						OpCodes.Ble
+					};
+
+					method.Editor.Locate(opc);
+					method.Editor.Nop(opc.Length);*/
 
 					return true;
 				}
@@ -122,11 +133,9 @@ namespace osu_patch
 			{
 				try
 				{
-					var method = CMain.ObfOsuExplorer["osu.GameModes.Play.Player"]["ChangeCustomOffset"];
-
 					// literally first 10 instructions
 
-					var opc = new[]
+					CMain.ObfOsuExplorer["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndRemove(new[]
 					{
 						OpCodes.Ldsfld,  // Player::Paused
 						OpCodes.Brtrue,  // go fuck urself then
@@ -138,10 +147,7 @@ namespace osu_patch
 						OpCodes.Ldc_I4,	 // --
 						OpCodes.Add,	 // --
 						OpCodes.Ble_S,	 // ^^ AudioEngine.Time > this.firstHitTime + 10000
-					};
-
-					method.Editor.Locate(opc);
-					method.Editor.Remove(opc.Length);
+					});
 
 					return true;
 				}
@@ -270,9 +276,55 @@ namespace osu_patch
 				}
 				catch { return false; }
 			}),
+			new Patch("Switch servers to asuki.me", true, () => // no one is using osu!patch anyway, i could do that patch for myself.
+			{
+				try
+				{
+					var method = CMain.ObfOsuExplorer["osu.Online.BanchoClient"].FindRaw(".cctor");
+
+					var declStart = method.Editor.Locate(new[]
+					{
+						null,
+						OpCodes.Newarr,
+						OpCodes.Dup,
+						OpCodes.Ldc_I4_0,
+						null, // obfuscator's string stuff, may be either in decrypted or encrypted state.
+						null, // --
+						OpCodes.Stelem_Ref,
+					});
+
+					var toRemove = method.Editor.Locate(declStart, new[]
+					{
+						OpCodes.Stelem_Ref,
+						OpCodes.Stsfld
+					}, false) - declStart + 1;
+
+					method.Editor.Remove(toRemove);
+					method.Editor.Insert(AsukiAddon_CreateServersArrayInitializer(new[]
+					{
+						"https://c.asuki.me",
+						"https://c1.asuki.me",
+						"http://162.243.131.91",
+						"http://c2.asuki.me:13381"
+					}));
+
+					// TODO replace all ldstrs in all method bodies
+
+					return true;
+				}
+				catch { return false; }
+			}),
 
 			#region Disabled
 			/*
+			enum SubmitMode
+			{
+				None,
+				WithoutNoFail,
+				DontSubmit,
+				WithNoFail
+			}
+
 			new Patch("NoFail submit options", false, () =>
 			{
 				
@@ -650,6 +702,76 @@ namespace osu_patch
 			body.OptimizeBranches();
 
 			return method;
+		}
+
+		private static IList<Instruction> AsukiAddon_CreateServersArrayInitializer(IList<string> addrList)
+		{
+			var ret = new List<Instruction>();
+
+			ret.AddRange(new[]
+			{
+				Instruction.CreateLdcI4(addrList.Count),
+				Instruction.Create(OpCodes.Newarr, CMain.ObfOsuModule.CorLibTypes.String)
+			});
+
+			for(int i = 0; i < addrList.Count; i++)
+			{
+				ret.AddRange(new[]
+				{
+					Instruction.Create(OpCodes.Dup),
+					Instruction.CreateLdcI4(i),
+					Instruction.Create(OpCodes.Ldstr, addrList[i]),
+					Instruction.Create(OpCodes.Stelem_Ref)
+				});
+			}
+
+			return ret;
+		}
+
+		public static IList<Instruction> AsukiAddon_UniversalizeOsuURL(string str, FieldDef baseUrlField, string baseUrl = OsuBaseUrl)
+		{
+			var parts = str.Split(new[] { baseUrl }, StringSplitOptions.None);
+
+			if (parts.Length == 2)
+			{
+				var sb = new ILStringBuilder();
+				
+				if(!String.IsNullOrEmpty(parts[0]))
+					sb.Add(parts[0]);
+
+				sb.Add(Instruction.Create(OpCodes.Ldsfld, baseUrlField));
+
+				if (!String.IsNullOrEmpty(parts[1]))
+					sb.Add(parts[1]);
+
+				return sb.Instructions;
+			}
+
+			return new List<Instruction> { Instruction.Create(OpCodes.Ldstr, str) };
+		}
+
+		class ILStringBuilder
+		{
+			public List<Instruction> Instructions = new List<Instruction>();
+
+			private byte _stackCounter;
+			
+			private static readonly MemberRef StringConcat = CMain.ObfOsuModule.CreateMethodRef(true, typeof(String), "Concat", typeof(string), typeof(string), typeof(string));
+
+			public void Add(Instruction ins)
+			{
+				Instructions.Add(ins);
+				_stackCounter++;
+
+				if (_stackCounter >= 2)
+				{
+					Instructions.Add(Instruction.Create(OpCodes.Call, StringConcat));
+					_stackCounter = 1;
+				}
+			}
+
+			public void Add(string str) =>
+				Add(Instruction.Create(OpCodes.Ldstr, str));
 		}
 
 		#region Mentally disabled
