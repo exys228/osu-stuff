@@ -137,16 +137,21 @@ namespace osu_patch
 
 					CMain.ObfOsuExplorer["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndRemove(new[]
 					{
-						OpCodes.Ldsfld,  // Player::Paused
-						OpCodes.Brtrue,  // go fuck urself then
-						OpCodes.Ldsfld,  // Player::Unpausing
-						OpCodes.Brtrue,  // go fuck urself then
-						OpCodes.Ldsfld,  // --
-						OpCodes.Ldarg_0, // --
-						OpCodes.Ldfld,	 // -- 
-						OpCodes.Ldc_I4,	 // --
-						OpCodes.Add,	 // --
-						OpCodes.Ble_S,	 // ^^ AudioEngine.Time > this.firstHitTime + 10000
+						OpCodes.Ldsfld,   // Player::Paused
+						OpCodes.Brtrue,   // ret
+						OpCodes.Ldsfld,   // Player::Unpausing
+						OpCodes.Brtrue,   // ret
+						OpCodes.Ldsfld,   // --
+						OpCodes.Ldarg_0,  // --
+						OpCodes.Ldfld,	  // -- 
+						OpCodes.Ldc_I4,	  // --
+						OpCodes.Add,	  // --
+						OpCodes.Ble_S,	  // ^^ AudioEngine.Time > this.firstHitTime + 10000 && ...
+						OpCodes.Ldsfld,	  // --
+						OpCodes.Brtrue_S, // --
+						OpCodes.Ldsfld,	  // --
+						OpCodes.Brtrue_S, // ^^ ... !GameBase.TestMode && !EventManager.BreakMode
+						OpCodes.Ret
 					});
 
 					return true;
@@ -276,7 +281,7 @@ namespace osu_patch
 				}
 				catch { return false; }
 			}),
-			new Patch("Switch servers to asuki.me", true, () => // no one is using osu!patch anyway, i could do that patch for myself.
+			new Patch("Switch servers to asuki.me", false, () => // no one is using osu!patch anyway, i could do that patch for myself.
 			{
 				try
 				{
