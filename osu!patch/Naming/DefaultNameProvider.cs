@@ -12,11 +12,11 @@ namespace osu_patch.Naming
 
 		private DefaultNameProvider() { }
 
-		public static DefaultNameProvider Initialize(ModuleDefMD cleanModule, ModuleDefMD obfuscatedModule, TextWriter debugOutput = null, bool deobfuscateNames = true)
+		public static DefaultNameProvider Initialize(ModuleDefMD cleanModule, ModuleDefMD obfuscatedModule, TextWriter debugOutput = null)
 		{
 			var newInstance = new DefaultNameProvider();
 
-			newInstance._nameMapper = new NameMapper.NameMapper(cleanModule, obfuscatedModule, debugOutput, deobfuscateNames);
+			newInstance._nameMapper = new NameMapper.NameMapper(cleanModule, obfuscatedModule, debugOutput, false);
 			newInstance._nameMapper.BeginProcessing();
 
 			return Instance = newInstance;
