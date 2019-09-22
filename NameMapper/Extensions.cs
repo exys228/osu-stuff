@@ -14,7 +14,7 @@ namespace NameMapper
 	    /// </summary>
 	    /// <param name="methods"></param>
 	    /// <returns>List of unique MethodDefs</returns>
-	    public static List<MethodDef> ExcludeMethodsDuplicatesByOpcodes(this IList<MethodDef> methods) => methods.GroupBy(m => m.Body?.Instructions.Select(i => i.OpCode)).Where(g => g.Count() == 1).Select(g => g.FirstOrDefault()).ToList();
+	    public static List<MethodDef> ExcludeMethodsDuplicatesByOpcodes(this IList<MethodDef> methods) => methods.GroupBy(m => m.Body?.Instructions.Select(i => i.OpCode.Code)).Where(g => g.Count() == 1).Select(g => g.FirstOrDefault()).ToList();
 
 	    public static bool IsFromModule(this IType type, NameMapper mapperInstance) => type.DefinitionAssembly == mapperInstance.CleanModule.Assembly || type.DefinitionAssembly == mapperInstance.ObfuscatedModule.Assembly;
 
