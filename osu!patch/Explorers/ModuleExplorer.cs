@@ -23,5 +23,8 @@ namespace osu_patch.Explorers
 			string result = NameProvider.GetName(name) ?? throw new Exception($"ModuleExplorer: Unable to find name: \"{name}\".");
 			return new TypeExplorer(this, Module.Find(result, false), NameProvider);
 		}
+
+		public TypeExplorer FindRaw(string name) =>
+			new TypeExplorer(this, Module.Find(name, false), NameProvider);
 	}
 }
