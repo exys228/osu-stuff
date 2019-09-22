@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using de4dot.code;
 using de4dot.code.AssemblyClient;
@@ -85,6 +86,7 @@ namespace osu_patch
 
 			var dictFile = Path.Combine(cacheFolderName, $"{ObfOsuHash}.dic");
 
+#if !DEBUG
 			if (File.Exists(dictFile))
 			{
 				Message("[MAIN]: Found cached namedict file for this assembly! Loading names...");
@@ -93,6 +95,7 @@ namespace osu_patch
 				ObfOsuExplorer = new ModuleExplorer(ObfOsuModule, nameProvider);
 			}
 			else
+#endif
 			{
 				Message("[MAIN]: No cached dict found! Initializing DefaultNameProvider (NameMapper)...");
 
@@ -145,7 +148,9 @@ namespace osu_patch
 			CleanOsuModule.Dispose();
 			ObfOsuModule.Dispose();
 
-			// Console.ReadKey(true);
+			#if DEBUG
+				Console.ReadKey(true);
+			#endif
 
 			return overallSuccess ? 0 : 1;
 		}
@@ -233,6 +238,13 @@ namespace osu_patch
 			}
 
 			return new TypeRefUser(CMain.ObfOsuModule, nameSpace, typeName, CMain.ObfOsuModule.Import(type).DefinitionAssembly.ToAssemblyRef());
+		}
+
+		public static T Clamp<T>(this T val, T min, T max) where T : IComparable<T>
+		{
+			if (val.CompareTo(min) < 0) return min;
+			else if (val.CompareTo(max) > 0) return max;
+			else return val;
 		}
 	}
 }
