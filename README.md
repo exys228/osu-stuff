@@ -18,7 +18,7 @@ mapper.BeginProcessing();
 // obfuscatedModule is passed as reference, it is deobfuscated by now.
 ```
 
-_Note: semi-hard-coded to work only with osu!, you may change `FindEntryPoint` method implementation and maybe it will work somehow with non-osu! assembly idk._
+_Note: semi-hard-coded to work only with osu!, you may change_ `FindEntryPoint` _method implementation and maybe it will work somehow with non-osu! assembly idk._
 
 ### NameMapper.CLI
 A simple CLI interface for NameMapper.
