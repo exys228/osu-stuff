@@ -15,10 +15,10 @@ Typical usage:
 var mapper = new NameMapper(cleanModule, obfuscatedModule, Console.Out);
 mapper.BeginProcessing();
 
-// obfuscatedModule is passed as reference, it is deobfuscated now.
+// obfuscatedModule is passed as reference, it is deobfuscated by now.
 ```
 
-Note: _semi-hard-coded to work only with osu!, you may change `FindEntryPoint` method implementation and maybe it will work somehow with non-osu! assembly idk._
+_Note: semi-hard-coded to work only with osu!, you may change `FindEntryPoint` method implementation and maybe it will work somehow with non-osu! assembly idk._
 
 ### NameMapper.CLI
 A simple CLI interface for NameMapper.
