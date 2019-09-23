@@ -31,7 +31,7 @@ namespace osu_patch
 						}
 					*/
 
-					CMain.ObfOsuExplorer["osu.OsuMain"]["Main"].Editor.LocateAndRemove(new[]
+					CMain.ObfOsuExplorer["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
 					{
 						OpCodes.Call,
 						OpCodes.Call,
@@ -71,7 +71,7 @@ namespace osu_patch
 						OpCodes.Dup
 					});
 
-					method.Editor.Remove(2);
+					method.Editor.Nop(2);
 
 					// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
 					method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, CMain.ObfOsuHash));
@@ -135,7 +135,7 @@ namespace osu_patch
 				{
 					// literally first 10 instructions
 
-					CMain.ObfOsuExplorer["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndRemove(new[]
+					CMain.ObfOsuExplorer["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
 					{
 						OpCodes.Ldsfld,   // Player::Paused
 						OpCodes.Brtrue,   // ret
@@ -293,12 +293,12 @@ namespace osu_patch
 						OpCodes.Newarr,
 						OpCodes.Dup,
 						OpCodes.Ldc_I4_0,
-						null, // obfuscator's string stuff, may be either in decrypted or encrypted state.
+						null, // ezstr
 						null, // --
 						OpCodes.Stelem_Ref,
 					});
 
-					var toRemove = method.Editor.Locate(declStart, new[]
+					var toRemove = method.Editor.LocateAt(declStart, new[]
 					{
 						OpCodes.Stelem_Ref,
 						OpCodes.Stsfld
