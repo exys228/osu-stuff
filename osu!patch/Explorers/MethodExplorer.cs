@@ -16,8 +16,6 @@ namespace osu_patch.Explorers
 
 		public CilBody Body { get; }
 
-		public INameProvider NameProvider { get; }
-
 		public Instruction this[int index]
 		{
 			get => Body.Instructions[index];
@@ -33,12 +31,11 @@ namespace osu_patch.Explorers
 			}
 		}
 
-		public MethodExplorer(TypeExplorer parent, MethodDef method, INameProvider nameProvider = null)
+		public MethodExplorer(TypeExplorer parent, MethodDef method)
 		{
 			Parent = parent;
 			Method = method;
 			Body = Method.Body;
-			NameProvider = nameProvider ?? DefaultNameProvider.Instance;
 
 			if (method.HasBody && method.Body != null)
 				Editor = new MethodEditor(this);
