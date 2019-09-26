@@ -14,8 +14,16 @@ namespace osu_patch.Editors
 
 		public CilBody Body { get; }
 
+		public IList<Instruction> Instrs => Body.Instructions;
+
+		public int Count => Body.Instructions.Count;
+
 		private int _position;
 
+		/// <summary>
+		/// Counts from 0, you may set index that is equals to current Count and that will just add instruction to desired position instead of inserting it, pretty cool too.
+		/// (atleast that's the idea, i wrote this just to not forget my plan on how this should work will forget anyways shieeet)
+		/// </summary>
 		public int Position
 		{
 			get => _position;
@@ -24,7 +32,7 @@ namespace osu_patch.Editors
 				if(value < 0)
 					throw new Exception("New position is lower than zero!");
 
-				if (value >= Body.Instructions.Count)
+				if (value > Count)
 					throw new Exception("New position is outside the bounds of array.");
 
 				_position = value;
@@ -38,26 +46,41 @@ namespace osu_patch.Editors
 			Position = 0;
 		}
 
-		/// <summary>
-		/// Clamps position between 0 and <see cref="Body"/>.Instructions.Count - 1 (last instruction).
-		/// </summary>
-		public void ClampPosition() =>
-			_position = _position.Clamp(0, Body.Instructions.Count - 1); // TODO what if count is 0
+		public Instruction this[int index]
+		{
+			get => Body.Instructions[index];
+			set
+			{
+				if (index < 0)
+					throw new Exception("Index is lower than zero!");
+
+				if (index >= Body.Instructions.Count)
+					throw new Exception("Index is outside the bounds of array.");
+
+				Body.Instructions[index] = value;
+			}
+		}
 
 		/// <summary>
-		/// Locate given OpCode signature in <see cref="Body"/>.
+		/// Clamps <see cref="Position"/> between 0 and <see cref="Body"/>.Instructions.Count - 1 (last <see cref="Instruction"/>).
 		/// </summary>
-		/// <param name="signature">The signature</param>
+		public void ClampPosition() =>
+			_position = _position.Clamp(0, Count);
+
+		/// <summary>
+		/// Locate given <see cref="OpCode"/> <paramref name="signature"/> in <see cref="Body"/>.
+		/// </summary>
+		/// <param name="signature">The <paramref name="signature"/></param>
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
-		/// <returns>Position of found signature</returns>
+		/// <returns>Position of found <paramref name="signature"/></returns>
 		public int Locate(IList<OpCode> signature, bool setPosition = true) =>
 			LocateAt(0, signature, setPosition);
 
 		/// <summary>
-		/// Locate given OpCode signature in method body starting from given index.
+		/// Locate given <see cref="OpCode"/> <paramref name="signature"/> in <see cref="Body"/> starting from given <paramref name="index"/>.
 		/// </summary>
 		/// <param name="index">Index to start from</param>
-		/// <param name="signature">The signature</param>
+		/// <param name="signature">The <paramref name="signature"/></param>
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
 		/// <returns>Position of found signature</returns>
 		public int LocateAt(int index, IList<OpCode> signature, bool setPosition = true)
@@ -65,13 +88,13 @@ namespace osu_patch.Editors
 			if (signature == null || signature.Count == 0)
 				throw new ArgumentException("Signature is null or empty.");
 
-			for (int i = index; i < Body.Instructions.Count; i++)
+			for (int i = index; i < Count; i++)
 			{
 				var occurence = 0;
 
-				while (i + occurence < Body.Instructions.Count)
+				while (i + occurence < Count)
 				{
-					if (Body.Instructions[i + occurence].OpCode != signature[occurence] && signature[occurence] != null)
+					if (Instrs[i + occurence].OpCode != signature[occurence] && signature[occurence] != null)
 						break;
 
 					if (++occurence >= signature.Count)
@@ -83,77 +106,123 @@ namespace osu_patch.Editors
 		}
 
 		/// <summary>
-		/// Insert given instruction in method body at <see cref="Position"/>.
+		/// Insert given <paramref name="instruction"/> in <see cref="Body"/> at <see cref="Position"/>.
 		/// </summary>
-		public void Insert(Instruction ins, InsertMode mode = InsertMode.Add) =>
-			InsertAt(_position, ins, mode);
+		public void Insert(Instruction instruction, InsertMode mode = InsertMode.Add) =>
+			InsertAt(_position, instruction, mode);
 
 		/// <summary>
-		/// Insert given instruction in method body at given index.
+		/// Insert given <paramref name="instruction"/> in <see cref="Body"/> at given <paramref name="index"/>.
 		/// </summary>
-		public void InsertAt(int index, Instruction ins, InsertMode mode = InsertMode.Add)
+		public void InsertAt(int index, Instruction instruction, InsertMode mode = InsertMode.Add)
 		{
 			switch (mode)
 			{
 				case InsertMode.Add:
-					Body.Instructions.Insert(index, ins);
+					if (index == Count)
+						Add(instruction);
+					else
+						Instrs.Insert(index, instruction);
+
 					break;
 
 				case InsertMode.Overwrite:
-					Body.Instructions[index] = ins;
+					Instrs[index] = instruction;
 					break;
+
+				default:
+					return;
 			}
+
+			SimplifyAndOptimize();
 		}
 
 		/// <summary>
-		/// Insert given instruction list at <see cref="Position"/>.
+		/// Insert given instruction <paramref name="list"/> at <see cref="Position"/>.
 		/// </summary>
-		public void Insert(IList<Instruction> insList, InsertMode mode = InsertMode.Add) =>
-			InsertAt(_position, insList, mode);
+		public void Insert(IList<Instruction> list, InsertMode mode = InsertMode.Add) =>
+			InsertAt(_position, list, mode);
 
 		/// <summary>
-		/// Insert given instruction list at given index.
+		/// Insert given instruction <paramref name="list"/> at given <paramref name="index"/>.
 		/// </summary>
-		public void InsertAt(int index, IList<Instruction> insList, InsertMode mode = InsertMode.Add)
+		public void InsertAt(int index, IList<Instruction> list, InsertMode mode = InsertMode.Add)
 		{
 			switch (mode)
 			{
 				case InsertMode.Add:
-					foreach (var ins in insList.Reverse())
-						Body.Instructions.Insert(index, ins);
+					foreach (var ins in list.Reverse())
+					{
+						if (index == Count)
+							Add(ins);
+						else
+							Instrs.Insert(index, ins);
+					}
 
 					break;
 
 				case InsertMode.Overwrite:
 					int i = 0;
 
-					while (i < insList.Count && index + i < Body.Instructions.Count) // overwrite existing
-						Body.Instructions[index + i] = insList[i++];
+					while (i < list.Count && index + i < Count) // overwrite existing
+					{
+						Instrs[index + i].OpCode = list[i].OpCode;
+						Instrs[index + i].Operand = list[i].Operand;
 
-					while(i < insList.Count) // add at end if something is left
-						Body.Instructions.Add(insList[i++]);
+						i++;
+					}
+
+					while(i < list.Count) // add at end if something is left
+						Add(list[i++]);
 
 					break;
+
+				default:
+					return;
 			}
+
+			SimplifyAndOptimize();
 		}
 
-		public void Replace(int count, IList<Instruction> insList) =>
-			ReplaceAt(_position, count, insList);
+		public void Replace(int index, IList<Instruction> list) =>
+			ReplaceAt(index, 1, list);
 
-		public void ReplaceAt(int index, int count, IList<Instruction> insList)
+		public void ReplaceAt(int index, int count, IList<Instruction> list)
 		{
-			throw new NotImplementedException(); // todo ok я хочу спать и завтра в военкомат поэтому благополучно посылаю нахуй, кхмкхмкхм на завтра. кстати это первый раз за долгое время когда я пишу комментарий на русском но всё равно никто не заметит так что похуй
+			if (index + count > Count)
+				throw new Exception($"Count of instructions is outside Instrs list! ({index + count} >= {Count} (max))");
+
+			var newList = new List<Instruction>(list); // because we're removing some instructions in process and list is passed as ref
+
+			for (int i = 0; i < count; i++)
+			{
+				var item = newList.FirstOrDefault();
+
+				if (item != null)
+				{
+					Instrs[index + i].OpCode = item.OpCode;
+					Instrs[index + i].Operand = item.Operand;
+
+					newList.RemoveAt(0);
+				}
+				else Instrs[index + i].OpCode = OpCodes.Nop;
+			}
+
+			if(newList.Count > 0)
+				InsertAt(index + count, newList);
+
+			SimplifyAndOptimize();
 		}
 
 		/// <summary>
-		/// Find next occurence of given OpCode starting from <see cref="Position"/>.
+		/// Find next occurence of given <see cref="OpCode"/> starting from <see cref="Position"/>.
 		/// </summary>
-		/// <param name="opCode">OpCode</param>
+		/// <param name="opCode"><see cref="OpCode"/> to search for</param>
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
 		public int Next(OpCode opCode, bool setPosition = true)
 		{
-			for(int i = _position; i < Body.Instructions.Count; i++)
-				if (Body.Instructions[i].OpCode == opCode)
+			for(int i = _position; i < Count; i++)
+				if (Instrs[i].OpCode == opCode)
 					return setPosition ? Position = i : i;
 
 			throw new Exception("Unable to locate given OpCode.");
@@ -161,21 +230,22 @@ namespace osu_patch.Editors
 
 		/// <summary>
 		/// Remove instruction(s) at <see cref="Position"/>.
-		/// Use <see cref="Nop"/> to preserve destination param of branch-aimed OpCodes.
+		/// Use <see cref="Nop"/> to preserve destination param of branch-aimed <see cref="OpCodes"/>.
 		/// </summary>
 		public void Remove(int count = 1) =>
 			RemoveAt(_position, count);
 
 		/// <summary>
 		/// Remove instuction(s) at given <see cref="index"/>.
-		/// Use <see cref="NopAt"/> to preserve destination param of branch-aimed OpCodes.
+		/// Use <see cref="NopAt"/> to preserve destination param of branch-aimed <see cref="OpCodes"/>.
 		/// </summary>
 		public void RemoveAt(int index, int count = 1)
 		{
-			for (int i = 0; i < count && index < Body.Instructions.Count; i++)
-				Body.Instructions.RemoveAt(index);
+			for (int i = 0; i < count && index < Count; i++)
+				Instrs.RemoveAt(index);
 
 			ClampPosition();
+			SimplifyAndOptimize();
 		}
 
 		/// <summary>
@@ -185,17 +255,17 @@ namespace osu_patch.Editors
 			NopAt(_position, count);
 
 		/// <summary>
-		/// Nop instruction(s) at given index.
+		/// Nop instruction(s) at given <paramref name="index"/>.
 		/// </summary>
 		public void NopAt(int index, int count = 1)
 		{
-			for (int i = 0; i < count && index + i < Body.Instructions.Count; i++)
-				Body.Instructions[index + i].OpCode = OpCodes.Nop;
+			for (int i = 0; i < count && index + i < Count; i++)
+				Instrs[index + i].OpCode = OpCodes.Nop;
 		}
 
 		/// <summary>
-		/// Locate and remove given OpCode signature.
-		/// Use <see cref="LocateAndNop"/> to preserve destination param of branch-aimed OpCodes.
+		/// Locate and remove given <see cref="OpCode"/> <paramref name="signature"/>.
+		/// Use <see cref="LocateAndNop"/> to preserve destination param of branch-aimed <see cref="OpCodes"/>.
 		/// </summary>
 		/// <param name="signature">Signature</param>
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
@@ -203,7 +273,7 @@ namespace osu_patch.Editors
 			RemoveAt(Locate(signature, setPosition), signature.Count);
 
 		/// <summary>
-		/// Locate and nop given OpCode signature.
+		/// Locate and nop given <see cref="OpCode"/> <paramref name="signature"/>.
 		/// </summary>
 		/// <param name="signature">Signature</param>
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
@@ -211,10 +281,17 @@ namespace osu_patch.Editors
 			NopAt(Locate(signature, setPosition), signature.Count);
 
 		/// <summary>
-		/// Add given instruction at the end of method body.
+		/// Add given <paramref name="instruction"/> at the end of method body.
 		/// </summary>
-		/// <param name="ins"></param>
-		public void Add(Instruction ins) => Body.Instructions.Add(ins);
+		/// <param name="instruction"></param>
+		public void Add(Instruction instruction) =>
+			Instrs.Add(instruction);
+
+		public void SimplifyAndOptimize()
+		{
+			Body.SimplifyBranches();
+			Body.OptimizeBranches();
+		}
 	}
 
 	public enum InsertMode
