@@ -8,10 +8,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using de4dot.code;
 using de4dot.code.AssemblyClient;
 using de4dot.code.deobfuscators;
+using StringFixerMini;
+using LdstrOccurence = System.Tuple<dnlib.DotNet.Emit.CilBody, int>;
 
 namespace osu_patch
 {
@@ -19,6 +22,8 @@ namespace osu_patch
 	{
 		public static ModuleDefMD ObfOsuModule;
 		public static ModuleDefMD CleanOsuModule;
+
+		public static Assembly ObfOsuAssembly;
 
 		public static ModuleExplorer ObfOsuExplorer;
 
@@ -40,10 +45,14 @@ namespace osu_patch
 			{
 				ObfOsuModule = ModuleDefMD.Load(ObfOsuPath);
 				CleanOsuModule = ModuleDefMD.Load(CleanOsuPath);
+
+				ObfOsuAssembly = Assembly.LoadFile(ObfOsuPath);
 			}
 			catch { return 1; }
 
 			ObfOsuHash = MD5Helper.Compute(ObfOsuPath); // ORIGINAL!!!!!! hash, PLEASE PASS UNMODIFIED PEPPY-SIGNED ASSEMBLY AS ObfOsuModule!@!!32R1234 (refer to "Patcher addon" patch)
+
+			// --- Cleaning control flow!
 
 			var options = new ObfuscatedFile.Options
 			{
@@ -69,8 +78,13 @@ namespace osu_patch
 
 			ObfOsuModule = obfFile.ModuleDefMD;
 
+			// ---
+
+			// fixin' strings real quick
+			StringFixer.Fix(ObfOsuModule, ObfOsuAssembly);
+
 #if DEBUG
-			ObfOsuModule.Write(Path.Combine(Path.GetDirectoryName(ObfOsuPath), "OsuObfModule-cflow.exe"), new ModuleWriterOptions(ObfOsuModule)
+			ObfOsuModule.Write(Path.Combine(Path.GetDirectoryName(ObfOsuPath), "OsuObfModule-cflow-string.exe"), new ModuleWriterOptions(ObfOsuModule)
 			{
 				MetadataOptions = { Flags = MetadataFlags.KeepOldMaxStack }
 			});
