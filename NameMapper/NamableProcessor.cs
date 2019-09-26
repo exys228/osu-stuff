@@ -63,7 +63,7 @@ namespace NameMapper
 						if (!obfuscatedType.NameIsObfuscated())
 							return ProcessResult.NameNotObfuscated;
 
-						if (AlreadyProcessedTypes.Any(x => x.Key.Item2 == obfuscatedType))
+						if (AlreadyProcessedTypes.Any(x => x.Key.Item2.MDToken == obfuscatedType.MDToken))
 							return ProcessResult.AlreadyProcessed;
 
 						var cleanTypeDef = cleanType.ScopeType.ResolveTypeDef();
@@ -110,7 +110,7 @@ namespace NameMapper
 				{
 					if (cleanMethod.IsFromModule(ParentInstance) && obfuscatedMethod.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedMethods.Any(x => x.Item2 == obfuscatedMethod))
+						if (AlreadyProcessedMethods.Any(x => x.Item2.MDToken == obfuscatedMethod.MDToken))
 							return ProcessResult.AlreadyProcessed;
 
 						var cleanMethodDef = cleanMethod.ResolveMethodDef();
@@ -183,7 +183,7 @@ namespace NameMapper
 				{
 					if (cleanFieldDef.IsFromModule(ParentInstance) && obfuscatedFieldDef.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedFields.Any(x => x.Item2 == obfuscatedFieldDef))
+						if (AlreadyProcessedFields.Any(x => x.Item2.MDToken == obfuscatedFieldDef.MDToken))
 							return ProcessResult.AlreadyProcessed;
 
 						if (obfuscatedFieldDef.NameIsObfuscated())
