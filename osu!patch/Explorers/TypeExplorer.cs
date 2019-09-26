@@ -24,10 +24,10 @@ namespace osu_patch.Explorers
 		public MethodExplorer Find(string name)
 		{
 			string result = NameProvider.GetName(name) ?? throw new Exception($"TypeExplorer: Unable to find name: \"{name}\".");
-			return new MethodExplorer(this, Type.FindMethod(result), NameProvider);
+			return new MethodExplorer(this, Type.FindMethod(result));
 		}
 
 		public MethodExplorer FindRaw(string name) =>
-			new MethodExplorer(this, Type.FindMethod(name), NameProvider);
+			new MethodExplorer(this, Type.FindMethod(name));
 	}
 }
