@@ -14,9 +14,11 @@ namespace osu_patch.Naming
 
 		public static DefaultNameProvider Initialize(ModuleDefMD cleanModule, ModuleDefMD obfuscatedModule, TextWriter debugOutput = null)
 		{
-			var newInstance = new DefaultNameProvider();
+			var newInstance = new DefaultNameProvider
+			{
+				_nameMapper = new NameMapper.NameMapper(cleanModule, obfuscatedModule, debugOutput, false) { ShowErroredMethods = false }
+			};
 
-			newInstance._nameMapper = new NameMapper.NameMapper(cleanModule, obfuscatedModule, debugOutput, false);
 			newInstance._nameMapper.BeginProcessing();
 
 			return Instance = newInstance;
