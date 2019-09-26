@@ -16,6 +16,7 @@ namespace NameMapper
 	public class NameMapper
 	{
 		internal ModuleDefMD CleanModule { get; } // Module to inherit names from
+
 		internal ModuleDefMD ObfuscatedModule { get; }
 
 		private TextWriter _debugOutput;
@@ -31,6 +32,8 @@ namespace NameMapper
 		private int _inWork;
 
 		public bool Processed { get; private set; }
+
+		public bool ShowErroredMethods { get; set; } = true;
 
 		public NameMapper(ModuleDefMD cleanModule, ModuleDefMD obfuscatedModule, TextWriter debugOutput = null, bool deobfuscateNames = true)
 		{
@@ -72,6 +75,8 @@ namespace NameMapper
 			//     -- 
 
 			//     -- Identifying using already known type pairs.
+
+			Message("I | Now identifying methods in already known type pairs.");
 
 			int prevCount = -1;
 
@@ -209,11 +214,14 @@ namespace NameMapper
 
 					lock (_msgLock)
 					{
-						if (recurseResult.Result != RecurseResultEnum.NullArguments &&
+						if (ShowErroredMethods &&
+							recurseResult.Result != RecurseResultEnum.NullArguments &&
 						    recurseResult.Result != RecurseResultEnum.InProcess &&
 						    recurseResult.Result != RecurseResultEnum.Ok)
 						{
-							Message($"I | [R-{recurseLevel}] Done! NS: {cleanMethod.DeclaringType.Namespace}; Tuple({cleanMethod.DeclaringType.Name}::{cleanMethod.Name}(), {obfuscatedMethod.DeclaringType.Name}::{obfuscatedMethod.Name}()); Result: ", false);
+							var recurseStr = recurseLevel >= 1000000000 ? $"{recurseLevel / 1000000000}-{recurseLevel % 1000000000}" : recurseLevel.ToString();
+
+							Message($"I | [{recurseStr}] Done! {cleanMethod.FullName}; Result: ", false);
 
 							var prevColor = Console.ForegroundColor;
 							Console.ForegroundColor = ConsoleColor.Red;
