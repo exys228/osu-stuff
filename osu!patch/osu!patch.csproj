@@ -76,6 +76,10 @@
       <Project>{6bda6a19-ac48-43a8-8607-a8d99fc7edc0}</Project>
       <Name>NameMapper</Name>
     </ProjectReference>
+    <ProjectReference Include="..\StringFixerMini\StringFixerMini.csproj">
+      <Project>{8ffed028-d142-4af9-8d60-95cbd13f992a}</Project>
+      <Name>StringFixerMini</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

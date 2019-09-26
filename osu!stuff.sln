@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NameMapper.CLI", "NameMappe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu!patch", "osu!patch\osu!patch.csproj", "{5F7F349B-A3D0-4124-9BF3-2E030A43BB3B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringFixerMini", "StringFixerMini\StringFixerMini.csproj", "{8FFED028-D142-4AF9-8D60-95CBD13F992A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{5F7F349B-A3D0-4124-9BF3-2E030A43BB3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F7F349B-A3D0-4124-9BF3-2E030A43BB3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F7F349B-A3D0-4124-9BF3-2E030A43BB3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8FFED028-D142-4AF9-8D60-95CBD13F992A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FFED028-D142-4AF9-8D60-95CBD13F992A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FFED028-D142-4AF9-8D60-95CBD13F992A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FFED028-D142-4AF9-8D60-95CBD13F992A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
