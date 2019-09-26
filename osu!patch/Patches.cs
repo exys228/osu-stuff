@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using osu_patch.Explorers;
+using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
 using OpCodes = dnlib.DotNet.Emit.OpCodes;
@@ -307,13 +309,57 @@ namespace osu_patch
 					method.Editor.Remove(toRemove);
 					method.Editor.Insert(AsukiAddon_CreateServersArrayInitializer(new[]
 					{
-						"https://c.asuki.me",
-						"https://c1.asuki.me",
-						"http://162.243.131.91",
-						"http://c2.asuki.me:13381"
+						"akatsuki.pw",
+						"51.79.17.191"
 					}));
 
 					// TODO replace all ldstrs in all method bodies
+
+					var baseUrlField = new FieldDefUser("OsuBaseUrl", new FieldSig(CMain.ObfOsuModule.CorLibTypes.String), FieldAttributes.Public | FieldAttributes.Static);
+
+					var urlsType = CMain.ObfOsuExplorer["osu.Urls"].Type;
+
+					urlsType.Fields.Add(baseUrlField);
+
+					var methods = new MemberFinder().FindAll(CMain.ObfOsuModule).MethodDefs.Select(x => x.Key);
+
+					foreach (var meth in methods)
+					{
+						var editor = new MethodExplorer(null, meth).Editor;
+
+						if(editor is null) // body is null
+							continue;
+
+						for (int i = 0; i < editor.Count; i++)
+						{
+							var instr = editor[i];
+
+							if (instr.OpCode == OpCodes.Ldstr)
+							{
+								string str;
+
+								if (instr.Operand is UTF8String)
+									str = instr.Operand as UTF8String;
+								else if (instr.Operand is string)
+									str = instr.Operand as string;
+								else continue;
+
+								if (str.Contains(OsuBaseUrl))
+								{
+									editor.Replace(i, AsukiAddon_UniversalizeOsuURL(str, baseUrlField));
+									// Console.WriteLine($"{meth.DeclaringType.Name}::{meth.Name}");
+								}
+							}
+						}
+					}
+
+					var cctorEditor = new MethodExplorer(null, urlsType.FindMethod(".cctor")).Editor;
+
+					cctorEditor.InsertAt(cctorEditor.Count - 1, new[]
+					{
+						Instruction.Create(OpCodes.Ldstr, "akatsuki.pw"),
+						Instruction.Create(OpCodes.Stsfld, baseUrlField),
+					});
 
 					return true;
 				}
