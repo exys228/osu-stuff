@@ -1,13 +1,9 @@
-﻿using System;
+﻿using dnlib.DotNet;
+using dnlib.DotNet.Emit;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using dnlib.DotNet;
-using dnlib.DotNet.Emit;
-using Harmony;
 
 namespace StringFixerMini
 {
@@ -40,6 +36,9 @@ namespace StringFixerMini
 			//for every method with a body...
 			foreach (MethodDef meth in GetMethodsRecursive(module).Where(a => a.HasBody && a.Body.HasInstructions))
 			{
+				if(meth.IsEazInternalName() || meth.DeclaringType != null && meth.DeclaringType.IsEazInternal())
+					continue;
+
 				//.. and every instruction (starting at the second one) ...
 				for (int i = 1; i < meth.Body.Instructions.Count; i++)
 				{
@@ -59,6 +58,7 @@ namespace StringFixerMini
 						// if (dictionary[val] == ".ctor"/* && Flags.VirtFix*/) continue;
 
 						//replace the instructions with the string
+
 						prev.OpCode = OpCodes.Nop;
 						curr.OpCode = OpCodes.Ldstr;
 						curr.Operand = dictionary[val];
@@ -108,7 +108,7 @@ namespace StringFixerMini
 				yield return m;
 		}
 
-		private static MethodInfo FindMethod(Assembly ass, MethodDef meth, Type[] args)
+		private static MethodInfo FindMethod(System.Reflection.Assembly ass, MethodDef meth, Type[] args)
 		{
 			var flags = BindingFlags.Default;
 			flags |= meth.IsPublic ? BindingFlags.Public : BindingFlags.NonPublic;
@@ -118,29 +118,12 @@ namespace StringFixerMini
 			Type type = ass.GetType(meth.DeclaringType.ReflectionFullName);
 			return type?.GetMethod(meth.Name, flags, null, args, null);
 		}
-	}
 
-	internal static class Harmony
-	{
-		internal static void Patch()
+		private static bool IsEazInternalName(this IFullName name) => name.Name.StartsWith("#=q");
+
+		private static bool IsEazInternal(this TypeDef type)
 		{
-			HarmonyInstance h = HarmonyInstance.Create("exys.osudeobf");
-			h.PatchAll(Assembly.GetExecutingAssembly());
-		}
-
-		[HarmonyPatch(typeof(StackFrame), "GetMethod")]
-		internal class PatchStackTraceGetMethod
-		{
-			internal static MethodInfo MethodToReplace;
-
-			internal static void Postfix(ref MethodBase __result)
-			{
-				if (__result.DeclaringType == typeof(RuntimeMethodHandle))
-				{
-					__result = MethodToReplace ?? MethodBase.GetCurrentMethod();
-					Console.WriteLine("[Harmony] Patched stacktrace entry");
-				}
-			}
+			return type.IsEazInternalName() || type.DeclaringType != null && type.DeclaringType.IsEazInternal();
 		}
 	}
 }

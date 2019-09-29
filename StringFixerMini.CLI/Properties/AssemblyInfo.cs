@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("StringFixerMini")]
+[assembly: AssemblyTitle("StringFixerMini.CLI")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("StringFixerMini")]
+[assembly: AssemblyProduct("StringFixerMini.CLI")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("abe2e2d0-b47b-4e8c-ad0b-f71936adb7ad")]
+[assembly: Guid("76bc6809-41e4-4448-89c5-9dbc474975ff")]
 
 // Version information for an assembly consists of the following four values:
 //
