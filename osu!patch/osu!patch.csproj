@@ -77,7 +77,7 @@
       <Name>NameMapper</Name>
     </ProjectReference>
     <ProjectReference Include="..\StringFixerMini\StringFixerMini.csproj">
-      <Project>{8ffed028-d142-4af9-8d60-95cbd13f992a}</Project>
+      <Project>{abe2e2d0-b47b-4e8c-ad0b-f71936adb7ad}</Project>
       <Name>StringFixerMini</Name>
     </ProjectReference>
   </ItemGroup>
