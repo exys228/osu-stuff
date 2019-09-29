@@ -283,7 +283,7 @@ namespace osu_patch
 				}
 				catch { return false; }
 			}),
-			new Patch("Switch servers to asuki.me", false, () => // no one is using osu!patch anyway, i could do that patch for myself.
+			new Patch("Switch servers to asuki.me", false, () =>
 			{
 				try
 				{
@@ -309,8 +309,8 @@ namespace osu_patch
 					method.Editor.Remove(toRemove);
 					method.Editor.Insert(AsukiAddon_CreateServersArrayInitializer(new[]
 					{
-						"akatsuki.pw",
-						"51.79.17.191"
+						"ripple.moe",
+						"51.15.223.146"
 					}));
 
 					// TODO replace all ldstrs in all method bodies
@@ -347,8 +347,11 @@ namespace osu_patch
 								if (str.Contains(OsuBaseUrl))
 								{
 									editor.Replace(i, AsukiAddon_UniversalizeOsuURL(str, baseUrlField));
+									Console.WriteLine("deb | " + str);
 									// Console.WriteLine($"{meth.DeclaringType.Name}::{meth.Name}");
 								}
+								else if (str.Contains("ppy.sh"))
+									Console.WriteLine("deb | " + str);
 							}
 						}
 					}
@@ -357,7 +360,7 @@ namespace osu_patch
 
 					cctorEditor.InsertAt(cctorEditor.Count - 1, new[]
 					{
-						Instruction.Create(OpCodes.Ldstr, "akatsuki.pw"),
+						Instruction.Create(OpCodes.Ldstr, "ripple.moe"),
 						Instruction.Create(OpCodes.Stsfld, baseUrlField),
 					});
 
