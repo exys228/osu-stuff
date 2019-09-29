@@ -20,11 +20,11 @@ namespace NameMapper.CLI
 		static int Main(string[] args)
 		{
 			if (args.Length < 2)
-				return Message("dotnetmap - map names from assembly with deobfuscated names to assembly with obfuscated names\n" +
+				return Message("NameMapper.CLI - map names from assembly with deobfuscated names to assembly with obfuscated names\n" +
 							   "by exys, 2019\n" +
 							   "\n" +
 				               "Usage:\n" +
-				               "dotnetmap [clean module] [obfuscated module]");
+							   "NameMapper.CLI [clean module] [obfuscated module]");
 
 			if (!File.Exists(_cleanModulePath = Path.GetFullPath(args[0])))
 				return Message("E | Specified clean module path does not exist");
