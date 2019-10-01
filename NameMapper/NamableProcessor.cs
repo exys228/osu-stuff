@@ -1,4 +1,5 @@
-﻿using dnlib.DotNet;
+﻿using System;
+using dnlib.DotNet;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
@@ -29,63 +30,60 @@ namespace NameMapper
 			ParentInstance = parentInstance;
 		}
 
-		public ProcessResult ProcessTypeSig(TypeSig cleanSig, TypeSig obfuscatedSig)
+		public ProcessResult ProcessTypeSig(TypeSig cleanSig, TypeSig obfSig)
 		{
-			if (cleanSig is null || obfuscatedSig is null)
+			if (cleanSig is null || obfSig is null)
 				return ProcessResult.NullArguments;
 
-			if (cleanSig is GenericInstSig cleanGenericSig && obfuscatedSig is GenericInstSig obfuscatedGenericSig)
+			if (cleanSig is GenericInstSig cleanGenericSig && obfSig is GenericInstSig obfGenericSig)
 			{
-				if (cleanGenericSig.GenericArguments.Count == obfuscatedGenericSig.GenericArguments.Count)
+				if (cleanGenericSig.GenericArguments.Count == obfGenericSig.GenericArguments.Count)
 					for (int i = 0; i < cleanGenericSig.GenericArguments.Count; i++)
-						ProcessType(cleanGenericSig.GenericArguments[i].ScopeType, obfuscatedGenericSig.GenericArguments[i].ScopeType);
+						ProcessType(cleanGenericSig.GenericArguments[i].ScopeType, obfGenericSig.GenericArguments[i].ScopeType);
 			}
 
-			ProcessType(cleanSig.ScopeType, obfuscatedSig.ScopeType);
+			ProcessType(cleanSig.ScopeType, obfSig.ScopeType);
 
 			return ProcessResult.Ok;
 		}
 
-		public ProcessResult ProcessType(IType cleanType, IType obfuscatedType)
+		public ProcessResult ProcessType(IType cleanType, IType obfType)
 		{
-			if (cleanType is null || obfuscatedType is null)
+			if (cleanType is null || obfType is null)
 				return ProcessResult.NullArguments;
 
-			if (cleanType is TypeSig cleanTypeSig && obfuscatedType is TypeSig obfuscatedTypeSig)
-				return ProcessTypeSig(cleanTypeSig, obfuscatedTypeSig);
+			if (cleanType is TypeSig cleanTypeSig && obfType is TypeSig obfTypeSig)
+				return ProcessTypeSig(cleanTypeSig, obfTypeSig);
 
 			if (Monitor.TryEnter(cleanType))
 			{
 				try
 				{
-					if (cleanType.IsFromModule(ParentInstance) && obfuscatedType.IsFromModule(ParentInstance))
+					if (cleanType.IsFromModule(ParentInstance) && obfType.IsFromModule(ParentInstance))
 					{
-						if (!obfuscatedType.NameIsObfuscated())
-							return ProcessResult.NameNotObfuscated;
-
-						if (AlreadyProcessedTypes.Any(x => x.Key.Item2.MDToken == obfuscatedType.MDToken))
+						if (AlreadyProcessedTypes.Any(x => x.Key.Item2.MDToken == obfType.MDToken))
 							return ProcessResult.AlreadyProcessed;
 
 						var cleanTypeDef = cleanType.ScopeType.ResolveTypeDef();
-						var obfuscatedTypeDef = obfuscatedType.ScopeType.ResolveTypeDef();
+						var obfTypeDef = obfType.ScopeType.ResolveTypeDef();
 
-						if (cleanTypeDef is null || obfuscatedTypeDef is null)
+						if (cleanTypeDef is null || obfTypeDef is null)
 							return ProcessResult.FailedToResolve;
 
-						if (obfuscatedTypeDef.NameIsObfuscated())
+						if (obfTypeDef.NameIsObfuscated())
 						{
-							AddOrCheckNamePair($"{cleanTypeDef.Namespace}.{cleanTypeDef.Name}", obfuscatedTypeDef.Name);
+							AddOrCheckNamePair($"{cleanTypeDef.Namespace}.{cleanTypeDef.Name}", obfTypeDef.Name);
 
 							if (ParentInstance.DeobfuscateNames)
 							{
-								obfuscatedTypeDef.Namespace = cleanTypeDef.Namespace;
-								obfuscatedTypeDef.Name = cleanTypeDef.Name;
+								obfTypeDef.Namespace = cleanTypeDef.Namespace;
+								obfTypeDef.Name = cleanTypeDef.Name;
 							}
 						}
 
-						ProcessType(cleanTypeDef.BaseType, obfuscatedTypeDef.BaseType);
+						ProcessType(cleanTypeDef.BaseType, obfTypeDef.BaseType);
 
-						AlreadyProcessedTypes.TryAdd(new TypePair(cleanTypeDef, obfuscatedTypeDef), false);
+						AlreadyProcessedTypes.TryAdd(new TypePair(cleanTypeDef, obfTypeDef), false);
 					}
 					else return ProcessResult.FrameworkType;
 				}
@@ -99,42 +97,45 @@ namespace NameMapper
 			return ProcessResult.Ok;
 		}
 
-		public ProcessResult ProcessMethod(IMethod cleanMethod, IMethod obfuscatedMethod)
+		public ProcessResult ProcessMethod(IMethod cleanMethod, IMethod obfMethod)
 		{
-			if (cleanMethod is null || obfuscatedMethod is null)
+			if (cleanMethod is null || obfMethod is null)
 				return ProcessResult.NullArguments;
 
 			if (Monitor.TryEnter(cleanMethod))
 			{
 				try
 				{
-					if (cleanMethod.IsFromModule(ParentInstance) && obfuscatedMethod.IsFromModule(ParentInstance))
+					if (cleanMethod.IsFromModule(ParentInstance) && obfMethod.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedMethods.Any(x => x.Item2.MDToken == obfuscatedMethod.MDToken))
+						if (AlreadyProcessedMethods.Any(x => x.Item2.MDToken == obfMethod.MDToken))
 							return ProcessResult.AlreadyProcessed;
 
 						var cleanMethodDef = cleanMethod.ResolveMethodDef();
-						var obfuscatedMethodDef = obfuscatedMethod.ResolveMethodDef();
+						var obfMethodDef = obfMethod.ResolveMethodDef();
 
-						if (cleanMethodDef is null || obfuscatedMethodDef is null)
+						if (cleanMethodDef is null || obfMethodDef is null)
 							return ProcessResult.FailedToResolve;
 
-						if (cleanMethodDef.IsStatic != obfuscatedMethodDef.IsStatic)
+						if (cleanMethodDef.IsStatic != obfMethodDef.IsStatic)
 							return ProcessResult.DifferentMethods;
 
-						if (obfuscatedMethodDef.NameIsObfuscated())
+						if (obfMethodDef.NameIsObfuscated())
 						{
-							AddOrCheckNamePair(cleanMethodDef.Name, obfuscatedMethodDef.Name);
+							AddOrCheckNamePair(cleanMethodDef.Name, obfMethodDef.Name);
 
 							if(ParentInstance.DeobfuscateNames)
-								obfuscatedMethodDef.Name = cleanMethodDef.Name;
+								obfMethodDef.Name = cleanMethodDef.Name;
 						}
 
-						ProcessType(cleanMethodDef.ReturnType, obfuscatedMethodDef.ReturnType);
-						ProcessType(cleanMethodDef.DeclaringType, obfuscatedMethodDef.DeclaringType);
-						ProcessMethodParameters(cleanMethodDef.Parameters, obfuscatedMethodDef.Parameters);
+                        ThreadPool.QueueUserWorkItem(state =>
+                        {
+                            ProcessType(cleanMethodDef.ReturnType, obfMethodDef.ReturnType);
+                            ProcessType(cleanMethodDef.DeclaringType, obfMethodDef.DeclaringType);
+                            ProcessMethodParameters(cleanMethodDef.Parameters, obfMethodDef.Parameters);
+                        });
 
-						AlreadyProcessedMethods.Add(new MethodPair(cleanMethodDef, obfuscatedMethodDef));
+                        AlreadyProcessedMethods.Add(new MethodPair(cleanMethodDef, obfMethodDef));
 					}
 					else return ProcessResult.FrameworkType;
 				}
@@ -148,56 +149,56 @@ namespace NameMapper
 			return ProcessResult.Ok;
 		}
 
-		public ProcessResult ProcessMethodParameters(ParameterList cleanParams, ParameterList obfuscatedParams)
+		public ProcessResult ProcessMethodParameters(ParameterList cleanParams, ParameterList obfParams)
 		{
-			if (cleanParams is null || obfuscatedParams is null)
+			if (cleanParams is null || obfParams is null)
 				return ProcessResult.NullArguments;
 
-			if (cleanParams.Count == obfuscatedParams.Count)
+			if (cleanParams.Count == obfParams.Count)
 			{
 				for (int i = cleanParams.Method.IsStatic ? 0 : 1; i < cleanParams.Count; i++) // if instance (non-static) then first param is always A_0 (this)
 				{
-					if (obfuscatedParams[i].ParamDef.NameIsObfuscated())
+					if (obfParams[i].ParamDef.NameIsObfuscated())
 					{
-						AddOrCheckNamePair(cleanParams[i].Name, obfuscatedParams[i].Name);
+						AddOrCheckNamePair(cleanParams[i].Name, obfParams[i].Name);
 
 						if (ParentInstance.DeobfuscateNames)
-							obfuscatedParams[i].Name = cleanParams[i].Name; // param name don't get confused
+							obfParams[i].Name = cleanParams[i].Name; // param name don't get confused
 					}
 
-					ProcessType(cleanParams[i].Type, obfuscatedParams[i].Type);
+					ProcessType(cleanParams[i].Type, obfParams[i].Type);
 				}
 			}
 
 			return ProcessResult.Ok;
 		}
 
-		public ProcessResult ProcessField(FieldDef cleanFieldDef, FieldDef obfuscatedFieldDef)
+		public ProcessResult ProcessField(FieldDef cleanFieldDef, FieldDef obfFieldDef)
 		{
-			if (cleanFieldDef is null || obfuscatedFieldDef is null)
+			if (cleanFieldDef is null || obfFieldDef is null)
 				return ProcessResult.NullArguments;
 
 			if (Monitor.TryEnter(cleanFieldDef))
 			{
 				try
 				{
-					if (cleanFieldDef.IsFromModule(ParentInstance) && obfuscatedFieldDef.IsFromModule(ParentInstance))
+					if (cleanFieldDef.IsFromModule(ParentInstance) && obfFieldDef.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedFields.Any(x => x.Item2.MDToken == obfuscatedFieldDef.MDToken))
+						if (AlreadyProcessedFields.Any(x => x.Item2.MDToken == obfFieldDef.MDToken))
 							return ProcessResult.AlreadyProcessed;
 
-						if (obfuscatedFieldDef.NameIsObfuscated())
+						if (obfFieldDef.NameIsObfuscated())
 						{
-							AddOrCheckNamePair(cleanFieldDef.Name, obfuscatedFieldDef.Name);
+							AddOrCheckNamePair(cleanFieldDef.Name, obfFieldDef.Name);
 
 							if(ParentInstance.DeobfuscateNames)
-								obfuscatedFieldDef.Name = cleanFieldDef.Name;
+								obfFieldDef.Name = cleanFieldDef.Name;
 						}
 
-						ProcessType(cleanFieldDef.DeclaringType, obfuscatedFieldDef.DeclaringType);
-						ProcessType(cleanFieldDef.FieldType.ToTypeDefOrRef(), obfuscatedFieldDef.FieldType.ToTypeDefOrRef());
+						ProcessType(cleanFieldDef.DeclaringType, obfFieldDef.DeclaringType);
+						ProcessType(cleanFieldDef.FieldType.ToTypeDefOrRef(), obfFieldDef.FieldType.ToTypeDefOrRef());
 
-						AlreadyProcessedFields.Add(new FieldPair(cleanFieldDef, obfuscatedFieldDef));
+						AlreadyProcessedFields.Add(new FieldPair(cleanFieldDef, obfFieldDef));
 					}
 					else return ProcessResult.FrameworkType;
 				}
@@ -211,12 +212,12 @@ namespace NameMapper
 			return ProcessResult.Ok;
 		}
 
-		private void AddOrCheckNamePair(string cleanName, string obfuscatedName)
+		private void AddOrCheckNamePair(string cleanName, string obfName)
 		{
-			string ret = ParentInstance.NamePairs.GetOrAdd(cleanName, obfuscatedName);
+			string ret = ParentInstance.NamePairs.GetOrAdd(cleanName, obfName);
 
-			if (ret != obfuscatedName)
-				ParentInstance.Message($"W | Found duplicate (errored) name pair: \"{cleanName}\" => given \"{obfuscatedName}\"  but got  \"{ret}\".");
+			if (ret != obfName)
+				ParentInstance.Message($"W | Found duplicate (errored) name pair: \"{cleanName}\" => given \"{obfName}\"  but got  \"{ret}\".");
 		}
 	}
 

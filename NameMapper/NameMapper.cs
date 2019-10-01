@@ -6,7 +6,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using NameMapper.Exceptions;
 
 namespace NameMapper
 {
@@ -15,9 +17,11 @@ namespace NameMapper
 	/// </summary>
 	public class NameMapper
 	{
+		private const float DefaultMinimalSuccessPercentage = .1f;
+
 		internal ModuleDefMD CleanModule { get; } // Module to inherit names from
 
-		internal ModuleDefMD ObfuscatedModule { get; }
+		internal ModuleDefMD ObfModule { get; }
 
 		private TextWriter _debugOutput;
 
@@ -35,10 +39,10 @@ namespace NameMapper
 
 		public bool ShowErroredMethods { get; set; } = true;
 
-		public NameMapper(ModuleDefMD cleanModule, ModuleDefMD obfuscatedModule, TextWriter debugOutput = null, bool deobfuscateNames = true)
+		public NameMapper(ModuleDefMD cleanModule, ModuleDefMD obfModule, TextWriter debugOutput = null, bool deobfuscateNames = true)
 		{
 			CleanModule = cleanModule;
-			ObfuscatedModule = obfuscatedModule;
+			ObfModule = obfModule;
 			DeobfuscateNames = deobfuscateNames;
 			_debugOutput = debugOutput; 
 			_namableProcessor = new NamableProcessor(this);
@@ -46,35 +50,29 @@ namespace NameMapper
 
 		public Dictionary<string, string> GetNamePairs() => new Dictionary<string, string>(NamePairs);
 
-		public bool BeginProcessing()
+		public void BeginProcessing()
 		{
 			if (Processed)
-				return Message("E | Process() called but Processed equals true! This class is a one-time use.");
+				throw new NameMapperProcessingException("Already processed! This class is a one-time use.");
 
 			Processed = true;
 
 			// -- BEGIN IDENTIFYING PROCESS
 
-			//     -- Identifying using entry point as start.
+			//	 -- Identifying using entry point as start.
 
 			var cleanEntry = FindEntryPoint(CleanModule);
-			var obfuscatedEntry = FindEntryPoint(ObfuscatedModule);
-
-			if (cleanEntry is null)
-				return Message("E | Can't find entry point of clean module!");
-
-			if (obfuscatedEntry is null)
-				return Message("E | Can't find entry point of obfuscated module!");
+			var obfEntry = FindEntryPoint(ObfModule);
 
 			Message("I | Calling recurse! Level: 0");
 
-			EnqueueRecurseThread(cleanEntry, obfuscatedEntry);
+			EnqueueRecurseThread(cleanEntry, obfEntry);
 
 			WaitMakeSure();
 
-			//     -- 
+			//	 -- 
 
-			//     -- Identifying using already known type pairs.
+			//	 -- Identifying using already known type pairs.
 
 			Message("I | Now identifying methods in already known type pairs.");
 
@@ -90,28 +88,23 @@ namespace NameMapper
 						continue;
 
 					var cleanMethods = kvp.Key.Item1.ScopeType.ResolveTypeDef()?.Methods;
-					var obfuscatedMethods = kvp.Key.Item2.ScopeType.ResolveTypeDef()?.Methods;
+					var obfMethods = kvp.Key.Item2.ScopeType.ResolveTypeDef()?.Methods;
 
-					if (cleanMethods is null || obfuscatedMethods is null)
+					if (cleanMethods is null || obfMethods is null)
 						continue;
 
 					List<MethodDef> cleanUniqueMethods = cleanMethods.ExcludeMethodsDuplicatesByOpcodes(); // exclude duplicates
-					List<MethodDef> obfuscatedUniqueMethods = obfuscatedMethods.ExcludeMethodsDuplicatesByOpcodes();
+					List<MethodDef> obfUniqueMethods = obfMethods.ExcludeMethodsDuplicatesByOpcodes();
 
 					foreach (var cleanMethod in cleanUniqueMethods)
 					{
-						var obfuscatedMethod = obfuscatedUniqueMethods.FirstOrDefault(x => AreOpcodesEqual(cleanMethod?.Body?.Instructions, x.Body?.Instructions));
+						var obfMethod = obfUniqueMethods.FirstOrDefault(x => AreOpcodesEqual(cleanMethod?.Body?.Instructions, x.Body?.Instructions));
 
-						if(obfuscatedMethod != null)
+						if(obfMethod != null)
 						{
-							var result = _namableProcessor.ProcessMethod(cleanMethod, obfuscatedMethod);
-
-							if (result == ProcessResult.Ok)
-							{
-								EnqueueRecurseThread(cleanMethod, obfuscatedMethod, recurseNum);
-								recurseNum += 1000000000;
-							}
-						}
+                            EnqueueRecurseThread(cleanMethod, obfMethod, recurseNum);
+                            recurseNum += 1000000000;
+                        }
 					}
 
 					_namableProcessor.AlreadyProcessedTypes[kvp.Key] = true;
@@ -129,7 +122,7 @@ namespace NameMapper
 				prevCount = count;
 			}
 
-			//     --
+			//	 --
 
 			// also wait
 			WaitMakeSure();
@@ -139,19 +132,25 @@ namespace NameMapper
 
 			Message($"I | Overall known classes: {_namableProcessor.AlreadyProcessedTypes.Count}; Fully processed classes: {_namableProcessor.AlreadyProcessedTypes.Count(x => x.Value)}");
 
-			// -- END
+			var processedTypesCount = _namableProcessor.AlreadyProcessedTypes.Count;
+			var allTypesCount = ObfModule.CountTypes(x => !x.IsEazInternalName());
+			var processedOutOfAll = (float)processedTypesCount / allTypesCount;
 
-			return true;
-		}
+            if (processedOutOfAll < DefaultMinimalSuccessPercentage)
+				throw new NameMapperProcessingException($"Processed types percentage: {processedTypesCount}/{allTypesCount} => {processedOutOfAll * 100}% < {DefaultMinimalSuccessPercentage * 100}% (min), counting as unsuccessful.");
+
+			// -- END
+        }
 
 		public string FindName(string cleanName)
 		{
-			string obfuscatedName = null;
+			string obfName = null;
 
 			if(Processed)
-				NamePairs.TryGetValue(cleanName, out obfuscatedName);
+				if(!NamePairs.TryGetValue(cleanName, out obfName))
+                    throw new NameMapperException("Unable to find specified name: " + cleanName);
 
-			return obfuscatedName;
+			return obfName;
 		}
 
 		private void WaitMakeSure()
@@ -188,12 +187,12 @@ namespace NameMapper
 			if (module?.EntryPoint?.Body?.Instructions?.Count == 2 && module.EntryPoint.Body.Instructions[0]?.OpCode == OpCodes.Call)
 				return ((IMethodDefOrRef)module.EntryPoint.Body.Instructions[0]?.Operand).ResolveMethodDef();
 
-			return null;
+			throw new NameMapperException($"Unable to find entry point of given module");
 		}
 
-		private void EnqueueRecurseThread(IMethod cleanMethod, IMethod obfuscatedMethod, long recurseLevel = 0) => EnqueueRecurseThread(cleanMethod.ResolveMethodDef(), obfuscatedMethod.ResolveMethodDef(), recurseLevel);
+		private void EnqueueRecurseThread(IMethod cleanMethod, IMethod obfMethod, long recurseLevel = 0) => EnqueueRecurseThread(cleanMethod.ResolveMethodDef(), obfMethod.ResolveMethodDef(), recurseLevel);
 
-		private void EnqueueRecurseThread(MethodDef cleanMethod, MethodDef obfuscatedMethod, long recurseLevel = 0)
+		private void EnqueueRecurseThread(MethodDef cleanMethod, MethodDef obfMethod, long recurseLevel = 0)
 		{
 			Interlocked.Increment(ref _inWork);
 
@@ -205,7 +204,7 @@ namespace NameMapper
 
 					try
 					{
-						recurseResult = RecurseFromMethod(cleanMethod, obfuscatedMethod, recurseLevel++);
+						recurseResult = RecurseFromMethod(cleanMethod, obfMethod, recurseLevel++);
 					}
 					catch (Exception e)
 					{
@@ -216,8 +215,8 @@ namespace NameMapper
 					{
 						if (ShowErroredMethods &&
 							recurseResult.Result != RecurseResultEnum.NullArguments &&
-						    recurseResult.Result != RecurseResultEnum.InProcess &&
-						    recurseResult.Result != RecurseResultEnum.Ok)
+							recurseResult.Result != RecurseResultEnum.InProcess &&
+							recurseResult.Result != RecurseResultEnum.Ok)
 						{
 							var recurseStr = recurseLevel >= 1000000000 ? $"{recurseLevel / 1000000000}-{recurseLevel % 1000000000}" : recurseLevel.ToString();
 
@@ -249,58 +248,55 @@ namespace NameMapper
 		/// Start search recurse. Will use EnqueueRecurseThread.
 		/// </summary>
 		/// <param name="cleanMethod">Method in clean assembly to start recurse from.</param>
-		/// <param name="obfuscatedMethod">Method in obfuscated assembly to start recurse from.</param>
+		/// <param name="obfMethod">Method in obfuscated assembly to start recurse from.</param>
 		/// <param name="recurseLevel">Level of recurse (always start with 0).</param>
 		/// <returns>Result of recurse operation.</returns>
-		private RecurseResult RecurseFromMethod(MethodDef cleanMethod, MethodDef obfuscatedMethod, long recurseLevel)
+		private RecurseResult RecurseFromMethod(MethodDef cleanMethod, MethodDef obfMethod, long recurseLevel)
 		{
-			if (cleanMethod is null || obfuscatedMethod is null)
+			if (cleanMethod is null || obfMethod is null)
 				return new RecurseResult(RecurseResultEnum.NullArguments);
 
-			if (Monitor.TryEnter(obfuscatedMethod)) // clean is used in OperandProcessors.ProcessMethod, hardcoded but that's important
+			if (Monitor.TryEnter(obfMethod)) // clean is used in OperandProcessors.ProcessMethod, hardcoded but that's important
 			{
 				try
-				{
-					IList<Instruction> cleanInstr = cleanMethod.Body?.Instructions;
-					IList<Instruction> obfuscatedInstr = obfuscatedMethod.Body?.Instructions;
+                {
+                    if (_namableProcessor.ProcessMethod(cleanMethod, obfMethod) != ProcessResult.Ok)
+                        return new RecurseResult(RecurseResultEnum.Ok); // may be framework type/already in process/different methods etc.
 
-					_namableProcessor.ProcessMethod(cleanMethod, obfuscatedMethod);
+                    IList<Instruction> cleanInstr = cleanMethod.Body?.Instructions;
+                    IList<Instruction> obfInstr = obfMethod.Body?.Instructions;
 
-					if (cleanMethod.HasBody != obfuscatedMethod.HasBody)
+                    if (cleanMethod.HasBody != obfMethod.HasBody)
 						return new RecurseResult(RecurseResultEnum.DifferentMethods);
 
 					if (!cleanMethod.HasBody)
 						return new RecurseResult(RecurseResultEnum.Ok); // all possible things are done at this moment
 
-					// ReSharper disable PossibleNullReferenceException
-					if (cleanInstr.Count != obfuscatedInstr.Count)
-						return new RecurseResult(RecurseResultEnum.DifferentInstructionsCount, Math.Abs(cleanInstr.Count - obfuscatedInstr.Count));
+					// ReSharper disable PossibleNullReference
 
-					if (!AreOpcodesEqual(cleanInstr, obfuscatedInstr))
+					if (cleanInstr.Count != obfInstr.Count)
+						return new RecurseResult(RecurseResultEnum.DifferentInstructionsCount, Math.Abs(cleanInstr.Count - obfInstr.Count));
+
+					if (!AreOpcodesEqual(cleanInstr, obfInstr))
 						return new RecurseResult(RecurseResultEnum.DifferentInstructions);
 
 					for (int i = 0; i < cleanInstr.Count; i++)
 					{
 						object cleanOperand = cleanInstr[i].Operand;
-						object obfuscatedOperand = obfuscatedInstr[i].Operand;
+						object obfOperand = obfInstr[i].Operand;
 
-						if (cleanOperand is null || obfuscatedOperand is null)
+						if (cleanOperand is null || obfOperand is null)
 							continue;
 
-						if (cleanOperand.GetType() != obfuscatedOperand.GetType())
+						if (cleanOperand.GetType() != obfOperand.GetType())
 							continue;
 
 						if (cleanOperand is IMethod)
-						{
-							var result = _namableProcessor.ProcessMethod(cleanOperand as IMethod, obfuscatedOperand as IMethod);
-
-							if (result == ProcessResult.Ok)
-								EnqueueRecurseThread(cleanOperand as IMethod, obfuscatedOperand as IMethod, recurseLevel + 1);
-						}
-						else if (cleanOperand is ITypeDefOrRef)
-							_namableProcessor.ProcessType(cleanOperand as ITypeDefOrRef, obfuscatedOperand as ITypeDefOrRef);
+                            EnqueueRecurseThread(cleanOperand as IMethod, obfOperand as IMethod, recurseLevel + 1);
+                        else if (cleanOperand is ITypeDefOrRef)
+							_namableProcessor.ProcessType(cleanOperand as ITypeDefOrRef, obfOperand as ITypeDefOrRef);
 						else if (cleanOperand is FieldDef)
-							_namableProcessor.ProcessField(cleanOperand as FieldDef, obfuscatedOperand as FieldDef);
+							_namableProcessor.ProcessField(cleanOperand as FieldDef, obfOperand as FieldDef);
 
 						/*(cleanOperand is Instruction || cleanOperand is Local || cleanOperand is Parameter ||
 								 cleanOperand is Instruction[] || cleanOperand is string || cleanOperand is sbyte || cleanOperand is int ||
@@ -309,7 +305,7 @@ namespace NameMapper
 				}
 				finally
 				{
-					Monitor.Exit(obfuscatedMethod);
+					Monitor.Exit(obfMethod);
 				}
 			}
 			else return new RecurseResult(RecurseResultEnum.InProcess);
@@ -321,30 +317,30 @@ namespace NameMapper
 		/// Check instruction equality using opcodes only, no operands used.
 		/// </summary>
 		/// <returns>Are opcodes equal or not</returns>
-		private bool AreOpcodesEqual(IList<Instruction> cleanInstructions, IList<Instruction> obfuscatedInstructions)
+		private bool AreOpcodesEqual(IList<Instruction> cleanInstructions, IList<Instruction> obfInstructions)
 		{
-			if (cleanInstructions is null || obfuscatedInstructions is null)
+			if (cleanInstructions is null || obfInstructions is null)
 				return false;
 
-			if (cleanInstructions.Count != obfuscatedInstructions.Count)
+			if (cleanInstructions.Count != obfInstructions.Count)
 				return false;
 
 			for (int i = 0; i < cleanInstructions.Count; i++)
 			{
 				var cleanOpcode = cleanInstructions[i].OpCode;
-				var obfuscatedOpcode = obfuscatedInstructions[i].OpCode;
+				var obfOpcode = obfInstructions[i].OpCode;
 
 				var cleanOperand = cleanInstructions[i].Operand;
-				var obfuscatedOperand = obfuscatedInstructions[i].Operand;
+				var obfOperand = obfInstructions[i].Operand;
 
-				if (cleanOpcode != obfuscatedOpcode)
+				if (cleanOpcode != obfOpcode)
 					return false;
 
-				/*if (cleanOperand is null || obfuscatedOperand is null || cleanOperand.GetType() != obfuscatedOperand.GetType())
+				/*if (cleanOperand is null || obfOperand is null || cleanOperand.GetType() != obfOperand.GetType())
 					continue; // ???????
 
 				if(cleanOperand is sbyte || cleanOperand is int || cleanOperand is float || cleanOperand is double || cleanOperand is long)
-					if (!cleanOperand.Equals(obfuscatedOperand))
+					if (!cleanOperand.Equals(obfOperand))
 						return false;*/ // useless anyways (?)
 			}
 
