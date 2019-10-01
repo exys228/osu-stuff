@@ -6,16 +6,18 @@ using System.Text;
 using System.Threading.Tasks;
 using dnlib.DotNet;
 using dnlib.DotNet.Writer;
+using NameMapper.Exceptions;
+using StringFixerMini.CLI;
 
 namespace NameMapper.CLI
 {
 	class Program
 	{
 		private static ModuleDefMD _cleanModule;
-		private static ModuleDefMD _obfuscatedModule;
+		private static ModuleDefMD _obfModule;
 
 		private static string _cleanModulePath;
-		private static string _obfuscatedModulePath;
+		private static string _obfModulePath;
 
 		static int Main(string[] args)
 		{
@@ -23,36 +25,36 @@ namespace NameMapper.CLI
 				return Message("NameMapper.CLI - map names from assembly with deobfuscated names to assembly with obfuscated names\n" +
 							   "by exys, 2019\n" +
 							   "\n" +
-				               "Usage:\n" +
+							   "Usage:\n" +
 							   "NameMapper.CLI [clean module] [obfuscated module]");
 
 			if (!File.Exists(_cleanModulePath = Path.GetFullPath(args[0])))
 				return Message("E | Specified clean module path does not exist");
 
-			if (!File.Exists(_obfuscatedModulePath = Path.GetFullPath(args[1])))
+			if (!File.Exists(_obfModulePath = Path.GetFullPath(args[1])))
 				return Message("E | Specified obfuscated module path does not exist");
 
 			try
 			{
 				_cleanModule = ModuleDefMD.Load(_cleanModulePath);
-				_obfuscatedModule = ModuleDefMD.Load(_obfuscatedModulePath);
+				_obfModule = ModuleDefMD.Load(_obfModulePath);
 			}
 			catch (Exception e) { return Message("E | An error occurred while trying to load and process modules! Details:\n" + e); }
 
-			Message($"I | Loaded modules: {_cleanModule.Assembly.FullName} (clean); {_obfuscatedModule.Assembly.FullName} (obfuscated).");
+			Message($"I | Loaded modules: {_cleanModule.Assembly.FullName} (clean); {_obfModule.Assembly.FullName} (obfuscated).");
 
-			NameMapper nameMapper = new NameMapper(_cleanModule, _obfuscatedModule, Console.Out);
+			NameMapper nameMapper = new NameMapper(_cleanModule, _obfModule, Console.Out);
 
 			nameMapper.BeginProcessing();
 
-			string filename = Path.GetFileNameWithoutExtension(_obfuscatedModulePath) + "-nmapped" + Path.GetExtension(_obfuscatedModulePath);
+			string filename = Path.GetFileNameWithoutExtension(_obfModulePath) + "-nmapped" + Path.GetExtension(_obfModulePath);
 
 			Message("I | Finally writing module back (with \"-nmapped\" tag)!");
 
-			_obfuscatedModule.Write(
+			_obfModule.Write(
 			Path.Combine(
-			Path.GetDirectoryName(_obfuscatedModulePath) ?? throw new Exception("Path to write module to is null unexpectedly"), filename),
-			new ModuleWriterOptions(_obfuscatedModule)
+			Path.GetDirectoryName(_obfModulePath) ?? throw new NameMapperCliException("Path to write module to is null unexpectedly"), filename),
+			new ModuleWriterOptions(_obfModule)
 			{
 				MetadataOptions = { Flags = MetadataFlags.PreserveAll }
 			});
