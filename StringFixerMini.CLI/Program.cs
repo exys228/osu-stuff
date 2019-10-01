@@ -46,7 +46,7 @@ namespace StringFixerMini.CLI
 
 			_module.Write(
 			Path.Combine(
-			Path.GetDirectoryName(_modulePath) ?? throw new Exception("Path to write module to is null unexpectedly"), filename),
+			Path.GetDirectoryName(_modulePath) ?? throw new StringFixerCliException("Path to write module to is null unexpectedly"), filename),
 			new ModuleWriterOptions(_module)
 			{
 				MetadataOptions = { Flags = MetadataFlags.PreserveAll }

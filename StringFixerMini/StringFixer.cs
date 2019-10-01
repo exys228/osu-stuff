@@ -22,13 +22,13 @@ namespace StringFixerMini
 			var decrypterMethod = GetMethodsRecursive(module).SingleOrDefault(CanBeStringMethod);
 
 			if (decrypterMethod is null)
-				throw new Exception("Could not find decrypter method!");
+				throw new StringFixerException("Could not find decrypter method");
 
 			//a dictionary to cache all strings
 			var dictionary = new Dictionary<int, string>();
 
 			//get the decrypter method in a way in which we can invoke it
-			var decrypter = FindMethod(assembly, decrypterMethod, new[] { typeof(int) }) ?? throw new Exception("Couldn't find decrypter method through reflection");
+			var decrypter = FindMethod(assembly, decrypterMethod, new[] { typeof(int) }) ?? throw new StringFixerException("Couldn't find decrypter method through reflection");
 
 			//store it so we can use it in the stacktrace patch
 			Harmony.PatchStackTraceGetMethod.MethodToReplace = decrypter; // not sure if it's needed?

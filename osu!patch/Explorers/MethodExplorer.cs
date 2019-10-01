@@ -22,10 +22,10 @@ namespace osu_patch.Explorers
 			set
 			{
 				if (index < 0)
-					throw new Exception("Index is lower than zero!");
+					throw new IndexOutOfRangeException("Index is lower than zero!");
 
 				if (index >= Body.Instructions.Count)
-					throw new Exception("Index is outside the bounds of array.");
+					throw new IndexOutOfRangeException("Index is outside the bounds of array.");
 
 				Body.Instructions[index] = value;
 			}

@@ -54,6 +54,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Harmony.cs" />
     <Compile Include="StringFixer.cs" />
+    <Compile Include="StringFixerException.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using osu_patch.Exceptions;
 
 namespace osu_patch.Naming
 {
@@ -9,8 +12,8 @@ namespace osu_patch.Naming
 
 		private SimpleNameProvider() { }
 
-		public static SimpleNameProvider Initialize(Dictionary<string, string> names)
-			=> new SimpleNameProvider { _names = names };
+		public static SimpleNameProvider Initialize(IDictionary<string, string> names)
+			=> new SimpleNameProvider { _names = new Dictionary<string, string>(names) };
 
 		public static SimpleNameProvider Initialize(byte[] dictBytes)
 		{
@@ -33,6 +36,13 @@ namespace osu_patch.Naming
 			=> new Dictionary<string, string>(_names);
 
 		public string GetName(string name)
-			=> _names?[name];
+        {
+            string obfName = null;
+
+            if(_names is null || !_names.TryGetValue(name, out obfName))
+                throw new NameProviderException("Unable to find name: " + name);
+
+            return obfName;
+        }
 	}
 }

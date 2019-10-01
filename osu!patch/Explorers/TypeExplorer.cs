@@ -1,6 +1,7 @@
 ﻿using dnlib.DotNet;
 using osu_patch.Naming;
 using System;
+using osu_patch.Exceptions;
 
 namespace osu_patch.Explorers
 {
@@ -18,12 +19,12 @@ namespace osu_patch.Explorers
 		{
 			Parent = parent;
 			Type = type;
-			NameProvider = nameProvider ?? DefaultNameProvider.Instance;
+			NameProvider = nameProvider ?? MapperNameProvider.Instance;
 		}
 
 		public MethodExplorer Find(string name)
 		{
-			string result = NameProvider.GetName(name) ?? throw new Exception($"TypeExplorer: Unable to find name: \"{name}\".");
+			string result = NameProvider.GetName(name);
 			return new MethodExplorer(this, Type.FindMethod(result));
 		}
 

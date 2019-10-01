@@ -48,6 +48,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Exceptions\NameMapperException.cs" />
+    <Compile Include="Exceptions\NameMapperProcessingException.cs" />
     <Compile Include="NamableProcessor.cs" />
     <Compile Include="NameMapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -57,5 +59,6 @@
     <Compile Include="Extensions.cs" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

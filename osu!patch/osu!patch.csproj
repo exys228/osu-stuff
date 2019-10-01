@@ -49,15 +49,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Exceptions\ExplorerFindException.cs" />
+    <Compile Include="Exceptions\MethodEditorLocateException.cs" />
+    <Compile Include="Exceptions\NameProviderException.cs" />
     <Compile Include="Explorers\MethodExplorer.cs" />
     <Compile Include="Explorers\TypeExplorer.cs" />
+    <Compile Include="Misc\PatchResult.cs" />
     <Compile Include="Naming\INameProvider.cs" />
     <Compile Include="Editors\MethodEditor.cs" />
     <Compile Include="Naming\SimpleNameProvider.cs" />
     <Compile Include="OsuFindCollection.cs" />
     <Compile Include="MD5Helper.cs" />
     <Compile Include="Patch.cs" />
-    <Compile Include="Naming\DefaultNameProvider.cs" />
+    <Compile Include="Naming\MapperNameProvider.cs" />
     <Compile Include="Patches.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -81,5 +85,10 @@
       <Name>StringFixerMini</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
 </Project>

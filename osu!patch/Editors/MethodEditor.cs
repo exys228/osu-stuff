@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using de4dot.code.deobfuscators;
+using osu_patch.Exceptions;
 
 namespace osu_patch.Editors
 {
@@ -30,10 +31,10 @@ namespace osu_patch.Editors
 			private set
 			{
 				if(value < 0)
-					throw new Exception("New position is lower than zero!");
+					throw new IndexOutOfRangeException("New position is lower than zero!");
 
 				if (value > Count)
-					throw new Exception("New position is outside the bounds of array.");
+					throw new IndexOutOfRangeException("New position is outside the bounds of array.");
 
 				_position = value;
 			}
@@ -52,10 +53,10 @@ namespace osu_patch.Editors
 			set
 			{
 				if (index < 0)
-					throw new Exception("Index is lower than zero!");
+					throw new IndexOutOfRangeException("Index is lower than zero!");
 
 				if (index >= Body.Instructions.Count)
-					throw new Exception("Index is outside the bounds of array.");
+					throw new IndexOutOfRangeException("Index is outside the bounds of array.");
 
 				Body.Instructions[index] = value;
 			}
@@ -102,7 +103,7 @@ namespace osu_patch.Editors
 				}
 			}
 
-			throw new Exception("Unable to locate given signature.");
+			throw new MethodEditorLocateException("Unable to locate given signature.");
 		}
 
 		/// <summary>
@@ -190,7 +191,7 @@ namespace osu_patch.Editors
 		public void ReplaceAt(int index, int count, IList<Instruction> list)
 		{
 			if (index + count > Count)
-				throw new Exception($"Count of instructions is outside Instrs list! ({index + count} >= {Count} (max))");
+				throw new IndexOutOfRangeException($"Count of instructions is outside Instrs list! ({index + count} >= {Count} (max))");
 
 			var newList = new List<Instruction>(list); // because we're removing some instructions in process and list is passed as ref
 
@@ -225,7 +226,7 @@ namespace osu_patch.Editors
 				if (Instrs[i].OpCode == opCode)
 					return setPosition ? Position = i : i;
 
-			throw new Exception("Unable to locate given OpCode.");
+			throw new MethodEditorLocateException("Unable to locate given OpCode.");
 		}
 
 		/// <summary>
