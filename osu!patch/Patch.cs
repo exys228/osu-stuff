@@ -1,31 +1,40 @@
 ﻿using System;
+using dnlib.DotNet;
+using osu_patch.Explorers;
+using osu_patch.Misc;
 
 namespace osu_patch
 {
-	public class Patch
+	class Patch
 	{
+		public string Name { get; }
+
 		public bool Enabled { get; set; }
 
-		public delegate bool PatchFunction();
-
-		PatchFunction PatchMethod;
-
-		public string Name { get; }
+		private PatchFunction _patchMethod;
 
 		public Patch(string patchName, bool enabled, PatchFunction function)
 		{
 			Enabled = enabled;
 			Name = patchName;
-			PatchMethod = function;
+			_patchMethod = function;
 		}
 
-		public bool Execute()
+		public PatchResult Execute(ModuleExplorer exp)
 		{
 			if (!Enabled)
-				return false;
+				return new PatchResult(this, PatchStatus.Disabled);
 
-			try { return PatchMethod(); }
-			catch { return false; }
-		}
+            try
+            {
+                return _patchMethod(this, exp);
+            }
+            catch (Exception ex)
+            {
+                return new PatchResult(this, PatchStatus.Exception, ex: ex);
+            }
+        }
 	}
+
+	delegate PatchResult PatchFunction(Patch parent, ModuleExplorer exp);
 }
