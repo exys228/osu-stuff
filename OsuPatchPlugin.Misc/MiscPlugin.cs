@@ -16,55 +16,9 @@ namespace OsuPatchPlugin.Misc
 
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
-			new Patch("Persistent supporter rank", true, (patch, exp) =>
-			{
-				var receive = exp["osu.Online.BanchoClient"]["receive"];
-
-				receive.Editor.Locate(new[]
-				{
-					OpCodes.Call,
-					OpCodes.Stsfld,
-					OpCodes.Ldsfld,
-					OpCodes.Ldsfld,
-					OpCodes.Dup,
-					OpCodes.Brtrue_S
-				});
-
-				// | 4 (supp rank)
-
-				receive.Editor.Insert(new[]
-				{
-					/*Instruction.Create(OpCodes.Ldc_I4_4),
-					Instruction.Create(OpCodes.Not),
-					Instruction.Create(OpCodes.And)*/
-
-					Instruction.Create(OpCodes.Ldc_I4_4),
-					Instruction.Create(OpCodes.Or),
-				});
-
-				// --- TEMP REMOVE PERMISSION FOR TESTING ^^^
-
-				/*var method = CMain.ObfOsuExplorer["osu.GameModes.Menus.Menu"]["checkPermissions"];
-	
-				var opc = new[]
-				{
-					OpCodes.Ldsfld,
-					OpCodes.Call,
-					OpCodes.Ldc_I4_4,
-					OpCodes.And,
-					OpCodes.Ldc_I4_0,
-					OpCodes.Ble
-				};
-	
-				method.Editor.Locate(opc);
-				method.Editor.Nop(opc.Length);*/
-
-				return new PatchResult(patch, PatchStatus.Success);
-			}),
 			new Patch("Local offset change while paused", true, (patch, exp) =>
 			{
 				// literally first 10 instructions
-
 				exp["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
 				{
 					OpCodes.Ldsfld, // Player::Paused
@@ -88,8 +42,7 @@ namespace OsuPatchPlugin.Misc
 			}),
 			new Patch("No minimum delay before pausing again", true, (patch, exp) =>
 			{
-				// literally first 10 instructions
-
+				// first 27 instructions
 				exp["osu.GameModes.Play.Player"]["togglePause"].Editor.LocateAndNop(new[]
 				{
 					OpCodes.Ldsfld,
