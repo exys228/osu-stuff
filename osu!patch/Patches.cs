@@ -18,9 +18,9 @@ namespace osu_patch
 {
 	internal static class Patches
 	{
-		private const string OsuBaseUrl = "osu.ppy.sh";
+		
 
-        internal static readonly Patch[] PatchList =
+        internal static readonly Patch[] PatchList = // i thought that separating necessary patches from other ones would be better, so patches down below are 'vital' 
         {
             new Patch("\"Unsigned executable\" fix", true, (patch, exp) =>
             {
@@ -75,77 +75,7 @@ namespace osu_patch
 
                 return new PatchResult(patch, PatchStatus.Success);
             }),
-            new Patch("Persistent supporter rank", true, (patch, exp) =>
-            {
-                var receive = exp["osu.Online.BanchoClient"]["receive"];
-
-                receive.Editor.Locate(new[]
-                {
-                    OpCodes.Call,
-                    OpCodes.Stsfld,
-                    OpCodes.Ldsfld,
-                    OpCodes.Ldsfld,
-                    OpCodes.Dup,
-                    OpCodes.Brtrue_S
-                });
-
-                // | 4 (supp rank)
-
-                receive.Editor.Insert(new[]
-                {
-                    /*Instruction.Create(OpCodes.Ldc_I4_4),
-                    Instruction.Create(OpCodes.Not),
-                    Instruction.Create(OpCodes.And)*/
-
-                    Instruction.Create(OpCodes.Ldc_I4_4),
-                    Instruction.Create(OpCodes.Or),
-                });
-
-                // --- TEMP REMOVE PERMISSION FOR TESTING ^^^
-
-                /*var method = CMain.ObfOsuExplorer["osu.GameModes.Menus.Menu"]["checkPermissions"];
-    
-                var opc = new[]
-                {
-                    OpCodes.Ldsfld,
-                    OpCodes.Call,
-                    OpCodes.Ldc_I4_4,
-                    OpCodes.And,
-                    OpCodes.Ldc_I4_0,
-                    OpCodes.Ble
-                };
-    
-                method.Editor.Locate(opc);
-                method.Editor.Nop(opc.Length);*/
-
-                return new PatchResult(patch, PatchStatus.Success);
-            }),
-            new Patch("Local offset change while paused", true, (patch, exp) =>
-            {
-                // literally first 10 instructions
-
-                exp["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
-                {
-                    OpCodes.Ldsfld, // Player::Paused
-                    OpCodes.Brtrue, // ret
-                    OpCodes.Ldsfld, // Player::Unpausing
-                    OpCodes.Brtrue, // ret
-                    OpCodes.Ldsfld, // --
-                    OpCodes.Ldarg_0, // --
-                    OpCodes.Ldfld, // -- 
-                    OpCodes.Ldc_I4, // --
-                    OpCodes.Add, // --
-                    OpCodes.Ble_S, // ^^ AudioEngine.Time > this.firstHitTime + 10000 && ...
-                    OpCodes.Ldsfld, // --
-                    OpCodes.Brtrue_S, // --
-                    OpCodes.Ldsfld, // --
-                    OpCodes.Brtrue_S, // ^^ ... !GameBase.TestMode && !EventManager.BreakMode
-                    OpCodes.Ret
-                });
-
-                return new PatchResult(patch, PatchStatus.Success);
-            }),
-            new Patch("Patcher addon", true, (patch, exp) =>
+            new Patch("\"Patch on update\" patch", true, (patch, exp) =>
             {
                 #region Patch() function
 
@@ -181,7 +111,7 @@ namespace osu_patch
                     OpCodes.Ldc_I4_1
                 });
 
-                MethodDefUser patchMethod = PatchAddon_CreatePatchMethod(exp);
+                MethodDefUser patchMethod = PatchPatch_CreatePatchMethod(exp);
                 type.Type.Methods.Add(patchMethod);
 
                 var op_Equality = exp.Module.CreateMethodRef(true, typeof(String), "op_Equality", typeof(bool), typeof(string), typeof(string));
@@ -263,88 +193,7 @@ namespace osu_patch
                 #endregion
 
                 return new PatchResult(patch, PatchStatus.Success);
-            }),
-            new Patch("Switch servers to asuki.me", false, (patch, exp) =>
-            {
-                var method = exp["osu.Online.BanchoClient"].FindRaw(".cctor");
-
-                var declStart = method.Editor.Locate(new[]
-                {
-                    null,
-                    OpCodes.Newarr,
-                    OpCodes.Dup,
-                    OpCodes.Ldc_I4_0,
-                    null, // ezstr
-                    null, // --
-                    OpCodes.Stelem_Ref,
-                });
-
-                var toRemove = method.Editor.LocateAt(declStart, new[]
-                {
-                    OpCodes.Stelem_Ref,
-                    OpCodes.Stsfld
-                }, false) - declStart + 1;
-
-                method.Editor.Remove(toRemove);
-                method.Editor.Insert(AsukiAddon_CreateServersArrayInitializer(exp, new[]
-                {
-                    "ripple.moe",
-                    "51.15.223.146"
-                }));
-
-                // TODO replace all ldstrs in all method bodies
-
-                var baseUrlField = new FieldDefUser("OsuBaseUrl", new FieldSig(exp.Module.CorLibTypes.String), FieldAttributes.Public | FieldAttributes.Static);
-
-                var urlsType = exp["osu.Urls"].Type;
-
-                urlsType.Fields.Add(baseUrlField);
-
-                var methods = new MemberFinder().FindAll(exp.Module).MethodDefs.Select(x => x.Key);
-
-                foreach (var meth in methods)
-                {
-                    var editor = new MethodExplorer(null, meth).Editor;
-
-                    if (editor is null) // body is null
-                        continue;
-
-                    for (int i = 0; i < editor.Count; i++)
-                    {
-                        var instr = editor[i];
-
-                        if (instr.OpCode == OpCodes.Ldstr)
-                        {
-                            string str;
-
-                            if (instr.Operand is UTF8String)
-                                str = instr.Operand as UTF8String;
-                            else if (instr.Operand is string)
-                                str = instr.Operand as string;
-                            else continue;
-
-                            if (str is null)
-                                continue;
-
-                            if (str.Contains(OsuBaseUrl))
-                            {
-                                editor.Replace(i, AsukiAddon_UniversalizeOsuURL(exp, str, baseUrlField));
-                                // Console.WriteLine($"{meth.DeclaringType.Name}::{meth.Name}");
-                            }
-                        }
-                    }
-                }
-
-                var cctorEditor = new MethodExplorer(null, urlsType.FindMethod(".cctor")).Editor;
-
-                cctorEditor.InsertAt(cctorEditor.Count - 1, new[]
-                {
-                    Instruction.Create(OpCodes.Ldstr, "ripple.moe"),
-                    Instruction.Create(OpCodes.Stsfld, baseUrlField),
-                });
-
-                return new PatchResult(patch, PatchStatus.Success);
-            }),
+            })
 
             #region Disabled
 
@@ -469,9 +318,9 @@ namespace osu_patch
                 var EnabledMods = currentScore?.GetTypeDef()?.FindFieldObf("EnabledMods"); // Score.EnabledMods
                 var ModStatus = CMain.OsuModule.FindObf("osu.GameplayElements.Scoring.ModManager")?.FindFieldObf("ModStatus");
 
-                var SubmitWithoutNoFail = NoFailAddon_CreateSubmitOption(SubmitModeDef, SubmitMode.WithoutNoFail);
-                var SubmitWithNoFail = NoFailAddon_CreateSubmitOption(SubmitModeDef, SubmitMode.WithNoFail);
-                var ShowSubmitModeDialog = NoFailAddon_CreateShowSubmitModeDialog(SubmitWithoutNoFail, SubmitWithNoFail);
+                var SubmitWithoutNoFail = NoFailPatch_CreateSubmitOption(SubmitModeDef, SubmitMode.WithoutNoFail);
+                var SubmitWithNoFail = NoFailPatch_CreateSubmitOption(SubmitModeDef, SubmitMode.WithNoFail);
+                var ShowSubmitModeDialog = NoFailPatch_CreateShowSubmitModeDialog(SubmitWithoutNoFail, SubmitWithNoFail);
 
                 Player.Methods.Add(SubmitWithoutNoFail);
                 Player.Methods.Add(SubmitWithNoFail);
@@ -649,7 +498,7 @@ namespace osu_patch
             #endregion
         };
 
-		private static MethodDefUser PatchAddon_CreatePatchMethod(ModuleExplorer exp)
+		private static MethodDefUser PatchPatch_CreatePatchMethod(ModuleExplorer exp)
 		{
 			var obfOsuModule = exp.Module;
 
@@ -739,89 +588,9 @@ namespace osu_patch
 			return method;
 		}
 
-		private static IList<Instruction> AsukiAddon_CreateServersArrayInitializer(ModuleExplorer exp, IList<string> addrList)
-		{
-			var ret = new List<Instruction>();
-
-			ret.AddRange(new[]
-			{
-				Instruction.CreateLdcI4(addrList.Count),
-				Instruction.Create(OpCodes.Newarr, exp.Module.CorLibTypes.String)
-			});
-
-			for(int i = 0; i < addrList.Count; i++)
-			{
-				ret.AddRange(new[]
-				{
-					Instruction.Create(OpCodes.Dup),
-					Instruction.CreateLdcI4(i),
-					Instruction.Create(OpCodes.Ldstr, addrList[i]),
-					Instruction.Create(OpCodes.Stelem_Ref)
-				});
-			}
-
-			return ret;
-		}
-
-        private static IList<Instruction> AsukiAddon_UniversalizeOsuURL(ModuleExplorer exp, string str, FieldDef baseUrlField, string baseUrl = OsuBaseUrl)
-		{
-			var parts = str.Split(new[] { baseUrl }, StringSplitOptions.None);
-
-			if (parts.Length == 2)
-			{
-				var sb = new IlStringBuilder(exp.Module);
-				
-				if(!String.IsNullOrEmpty(parts[0]))
-					sb.Add(parts[0]);
-
-				sb.Add(Instruction.Create(OpCodes.Ldsfld, baseUrlField));
-
-				if (!String.IsNullOrEmpty(parts[1]))
-					sb.Add(parts[1]);
-
-				return sb.Instructions;
-			}
-
-			return new List<Instruction> { Instruction.Create(OpCodes.Ldstr, str) };
-		}
-
-        private class IlStringBuilder
-		{
-			public List<Instruction> Instructions = new List<Instruction>();
-
-			private byte _stackCounter;
-
-			private static MemberRef _stringConcat;
-
-			public IlStringBuilder(ModuleDef module)
-			{
-				var mod = _stringConcat?.Module;
-
-				if (mod != null && mod == module)
-					return;
-
-				_stringConcat = module.CreateMethodRef(true, typeof(String), "Concat", typeof(string), typeof(string), typeof(string));
-			}
-
-			public void Add(Instruction ins)
-			{
-				Instructions.Add(ins);
-				_stackCounter++;
-
-				if (_stackCounter >= 2)
-				{
-					Instructions.Add(Instruction.Create(OpCodes.Call, _stringConcat));
-					_stackCounter = 1;
-				}
-			}
-
-			public void Add(string str) =>
-				Add(Instruction.Create(OpCodes.Ldstr, str));
-		}
-
-		#region Mentally disabled
+        #region Mentally disabled
 		/*
-		private static MethodDefUser NoFailAddon_CreateShowSubmitModeDialog(MethodDef SubmitWithoutNoFail, MethodDef SubmitWithNoFail)
+		private static MethodDefUser NoFailPatch_CreateShowSubmitModeDialog(MethodDef SubmitWithoutNoFail, MethodDef SubmitWithNoFail)
 		{
 			MethodImplAttributes implFlags = MethodImplAttributes.IL | MethodImplAttributes.Managed;
 			MethodAttributes flags = MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot;
@@ -909,7 +678,7 @@ namespace osu_patch
 			return method;
 		}
 
-		private static MethodDefUser NoFailAddon_CreateSubmitOption(FieldDefUser submitModeDef, SubmitMode submitMode)
+		private static MethodDefUser NoFailPatch_CreateSubmitOption(FieldDefUser submitModeDef, SubmitMode submitMode)
 		{
 			MethodImplAttributes implFlags = MethodImplAttributes.IL | MethodImplAttributes.Managed;
 			MethodAttributes flags = MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot;
