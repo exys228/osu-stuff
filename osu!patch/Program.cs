@@ -41,7 +41,8 @@ namespace osu_patch
 		private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
 															 MetadataFlags.PreserveUSOffsets |
 															 MetadataFlags.PreserveBlobOffsets |
-															 MetadataFlags.PreserveExtraSignatureData;
+															 MetadataFlags.PreserveExtraSignatureData |
+															 MetadataFlags.KeepOldMaxStack;
 
 		static CMain()
 		{
@@ -136,7 +137,9 @@ namespace osu_patch
 
 			try
 			{
-				InitializeObfOsuExplorer(); // Fixing names (SimpleNameProvider/MapperNameProvider)
+				var nameProvider = InitializeNameProvider(); // Fixing names (SimpleNameProvider/MapperNameProvider)
+
+				_obfOsuExplorer = new ModuleExplorer(_obfOsuModule, nameProvider);
 			}
 			catch (Exception ex) { return Exit("F | Unable to get clean names for obfuscated assembly! Details:\n" + ex); }
 
@@ -333,20 +336,18 @@ namespace osu_patch
 			else Directory.CreateDirectory(PluginsFolderLocation);
 		}
 
-		private static void InitializeObfOsuExplorer()
+		private static INameProvider InitializeNameProvider()
 		{
 			var dictFile = Path.Combine(CacheFolderLocation, $"{ObfOsuHash}.dic");
-
-			//#if !DEBUG
+			
+//#if !DEBUG
 			if (File.Exists(dictFile))
 			{
 				Message("I | Found cached name dictionary file for this assembly! Loading names...");
-
-				var nameProvider = SimpleNameProvider.Initialize(File.ReadAllBytes(dictFile));
-				_obfOsuExplorer = new ModuleExplorer(_obfOsuModule, nameProvider);
+				return SimpleNameProvider.Initialize(File.ReadAllBytes(dictFile));
 			}
 			else
-			//#endif
+//#endif
 			{
 				Message("I | No cached name dictionary found! Initializing DefaultNameProvider (NameMapper)...");
 
@@ -358,7 +359,7 @@ namespace osu_patch
 
 				MapperNameProvider.Initialize(_cleanOsuModule, _obfOsuModule, debugOut);
 				File.WriteAllBytes(dictFile, MapperNameProvider.Instance.Pack());
-				_obfOsuExplorer = new ModuleExplorer(_obfOsuModule);
+				return MapperNameProvider.Instance;
 			}
 		}
 
