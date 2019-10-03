@@ -13,10 +13,9 @@ using System.Reflection;
 using de4dot.code;
 using de4dot.code.AssemblyClient;
 using de4dot.code.deobfuscators;
+using osu_patch.Custom;
 using osu_patch.Misc;
 using StringFixerMini;
-
-using LdstrOccurence = System.Tuple<dnlib.DotNet.Emit.CilBody, int>;
 
 namespace osu_patch
 {
@@ -27,20 +26,46 @@ namespace osu_patch
 
 		private static Assembly _obfOsuAssembly;
 
-		private static ModuleExplorer _obfOsuExplorer;
+        private static ModuleExplorer _obfOsuExplorer;
 
-		private static string _obfOsuPath = "";
+        private static List<PluginInfo> _loadedPlugins;
+
+        private static string _obfOsuPath = "";
 		private static string _cleanOsuPath = "";
 
 		public static string ObfOsuHash = "";
 
-		private static readonly string ExecutingAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        private static readonly string ExecutingAssemblyLocation;
+        private static readonly string PluginsFolderLocation;
+        private static readonly string CacheFolderLocation;
 
-		public static int Main(string[] args)
+        private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
+                                                             MetadataFlags.PreserveUSOffsets |
+                                                             MetadataFlags.PreserveBlobOffsets |
+                                                             MetadataFlags.PreserveExtraSignatureData;
+
+        static CMain()
         {
             AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
-                Message("[MAIN]: Unhandled exception! This shouldn't occur. Details:\n" + eventArgs.ExceptionObject);
+            {
+                Message("F | Unhandled exception! This shouldn't occur. Details:\n" + eventArgs.ExceptionObject);
+                Console.ReadKey(true);
+                Environment.Exit(1);
+            };
 
+#if LIVE_DEBUG
+            Environment.CurrentDirectory = @"C:\osu!";
+            ExecutingAssemblyLocation = @"C:\osu!\osu!patch";
+#else
+            ExecutingAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+#endif
+
+            PluginsFolderLocation = Path.Combine(ExecutingAssemblyLocation, "plugins");
+            CacheFolderLocation = Path.Combine(ExecutingAssemblyLocation, "cache");
+        }
+
+        public static int Main(string[] args)
+        {
             // Console.ReadKey(true);
 
             if (args.Length < 2)
@@ -62,156 +87,129 @@ namespace osu_patch
 				_cleanOsuModule = ModuleDefMD.Load(_cleanOsuPath);
 
 				_obfOsuAssembly = Assembly.LoadFile(_obfOsuPath);
-			}
+            }
 			catch (Exception ex) { return Exit("F | Unable to load one of the modules! Details:\n" + ex); }
 
-			ObfOsuHash = MD5Helper.Compute(_obfOsuPath); // ORIGINAL!!!!!! hash, PLEASE PASS UNMODIFIED PEPPY-SIGNED ASSEMBLY AS _obfOsuModule!@!!32R1234 (refer to "Patcher addon" patch)
+            ObfOsuHash = MD5Helper.Compute(_obfOsuPath); // ORIGINAL!!!!!!! hash, PLEASE PASS UNMODIFIED PEPPY-SIGNED ASSEMBLY AS _obfOsuModule!@!!32R1234 (refer to "Patch on update" patch)
 
-			// --- Cleaning control flow!
+            Message($"I | Loaded assemblies: {_cleanOsuModule.Assembly.FullName} (clean); {_obfOsuModule.Assembly.FullName} (obfuscated).");
+            Message("I | MD5 hash of obfuscated assembly: " + ObfOsuHash);
 
-			try
-			{
-				var options = new ObfuscatedFile.Options
-				{
-					Filename = _obfOsuPath, // will this work or do i need filename ONLY? yes it will ok
-					ControlFlowDeobfuscation = true,
-					KeepObfuscatorTypes = true,
-					RenamerFlags = 0,
-					StringDecrypterType = DecrypterType.None,
-					MetadataFlags = MetadataFlags.PreserveRids |
-									MetadataFlags.PreserveUSOffsets |
-									MetadataFlags.PreserveBlobOffsets |
-									MetadataFlags.PreserveExtraSignatureData
-				};
+            try
+            {
+                LoadPlugins(); // Loading plugins
+            }
+            catch (Exception ex) { return Exit("F | Something really bad happened while trying to process plugins! Details:\n" + ex); }
 
-				var obfFile = new ObfuscatedFile(options, new ModuleContext(TheAssemblyResolver.Instance), new NewAppDomainAssemblyClientFactory());
+            try
+            {
+                CleanControlFlow(); // Cleaning control flow
+            }
+            catch (Exception ex) { return Exit("F | Unable to deobfuscate control flow of obfuscated assembly! Details:\n" + ex); }
 
-				obfFile.DeobfuscatorContext = new DeobfuscatorContext();
-				obfFile.Load(new List<IDeobfuscator> { new de4dot.code.deobfuscators.Unknown.DeobfuscatorInfo().CreateDeobfuscator() });
+            try
+            {
+                Message("I | Fixing strings in obfuscated assembly.");
 
-				obfFile.DeobfuscateBegin();
-				obfFile.Deobfuscate();
-				obfFile.DeobfuscateEnd();
-
-				_obfOsuModule = obfFile.ModuleDefMD;
-			}
-			catch (Exception ex) { return Exit("F | Unable to deobfuscate control flow of obfuscated assembly! Details:\n" + ex); }
-
-			// ---
-
-			// fixin' strings real quick
-			try
-			{
-				StringFixer.Fix(_obfOsuModule, _obfOsuAssembly);
+				StringFixer.Fix(_obfOsuModule, _obfOsuAssembly); // Fixing strings
 			}
 			catch (Exception ex) { return Exit("F | Unable to fix strings of obfuscated assembly! Details:\n" + ex); }
 
-#if DEBUG
-			_obfOsuModule.Write(Path.Combine(Path.GetDirectoryName(_obfOsuPath), "OsuObfModule-cflow-string.exe"), new ModuleWriterOptions(_obfOsuModule)
-			{
-				MetadataOptions = { Flags = MetadataFlags.KeepOldMaxStack }
-			});
-#endif
+            if (!Directory.Exists(CacheFolderLocation))
+            {
+                Message("I | Creating cache folder...");
+                Directory.CreateDirectory(CacheFolderLocation);
+            }
 
-			Message($"[MAIN]: Loaded assemblies: {_cleanOsuModule.Assembly.FullName} (clean); {_obfOsuModule.Assembly.FullName} (obfuscated).");
-
-			// --- Working with names
-
-			var cacheFolderName = Path.Combine(ExecutingAssemblyLocation, "cache");
-
-			if (!Directory.Exists(cacheFolderName))
-			{
-				Message("[MAIN] Creating cache folder...");
-				Directory.CreateDirectory(cacheFolderName);
-			}
-
-			var dictFile = Path.Combine(cacheFolderName, $"{ObfOsuHash}.dic");
-
-			try
-			{
-// #if !DEBUG
-				if (File.Exists(dictFile))
-				{
-					Message("[MAIN]: Found cached namedict file for this assembly! Loading names...");
-
-					var nameProvider = SimpleNameProvider.Initialize(File.ReadAllBytes(dictFile));
-					_obfOsuExplorer = new ModuleExplorer(_obfOsuModule, nameProvider);
-				}
-				else
-// #endif
-				{
-					Message("[MAIN]: No cached dict found! Initializing DefaultNameProvider (NameMapper)...");
+            try
+            {
+                InitializeObfOsuExplorer(); // Fixing names (SimpleNameProvider/MapperNameProvider)
+            }
+            catch (Exception ex) { return Exit("F | Unable to get clean names for obfuscated assembly! Details:\n" + ex); }
 
 #if DEBUG
-					TextWriter debugOut = Console.Out;
-#else
-					TextWriter debugOut = null;
+            _obfOsuModule.Write(Path.Combine(Path.GetDirectoryName(_obfOsuPath), "OsuObfModule-cflow-string-nmapped.exe"), new ModuleWriterOptions(_obfOsuModule)
+            {
+                MetadataOptions = { Flags = DEFAULT_METADATA_FLAGS }
+            });
 #endif
 
-					MapperNameProvider.Initialize(_cleanOsuModule, _obfOsuModule, debugOut);
-					File.WriteAllBytes(dictFile, MapperNameProvider.Instance.Pack());
-					_obfOsuExplorer = new ModuleExplorer(_obfOsuModule);
-				}
-			}
-			catch (Exception ex) { return Exit("F | Unable to get clean names for obfuscated assembly! Details:\n" + ex); }
-
-			// ---
-
-			Message("[MAIN]: Done! Now patching.");
+            Message("I | Done! Now patching.");
 
 			bool overallSuccess = true;
 
 			var failedDetails = new List<PatchResult>();
 
-			foreach (var patch in Patches.PatchList)
-			{
-				Console.Write($"[MAIN]: {patch.Name}: ");
+            void ExecutePatchCli(Patch patch)
+            {
+                Console.Write($"I | {patch.Name}: ");
 
                 PatchResult res = patch.Execute(_obfOsuExplorer);
 
                 switch (res.Result)
-				{
-					case PatchStatus.Disabled:
-						Console.ForegroundColor = ConsoleColor.Gray;
-						Message("DISABLED");
-						break;
+                {
+                    case PatchStatus.Disabled:
+                        Console.ForegroundColor = ConsoleColor.Gray;
+                        Message("DISABLED");
+                        break;
 
-					case PatchStatus.Exception:
-					case PatchStatus.Failure:
-						Console.ForegroundColor = ConsoleColor.Red;
-						Message("FAIL");
-						failedDetails.Add(res);
-						overallSuccess = false;
-						break;
+                    case PatchStatus.Exception:
+                    case PatchStatus.Failure:
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Message("FAIL");
+                        failedDetails.Add(res);
+                        overallSuccess = false;
+                        break;
 
-					case PatchStatus.Success:
-						Console.ForegroundColor = ConsoleColor.Green;
-						Message("DONE");
-						break;
+                    case PatchStatus.Success:
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Message("DONE");
+                        break;
 
-					default:
-						Console.ForegroundColor = ConsoleColor.DarkGray;
-						Message("[???]");
-						break;
-				}
+                    default:
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Message("[???]");
+                        break;
+                }
 
-				Console.ResetColor();
-			}
+                Console.ResetColor();
+            }
 
-			if (failedDetails.Any())
-				Message("[MAIN]: There's some details about failed patches.");
+            // Executing local patches.
+            foreach (var patch in Patches.PatchList)
+                ExecutePatchCli(patch);
 
-			foreach (var details in failedDetails)
-			{
-				details.PrintDetails(Console.Out);
-				Message();
-			}
+            Message("I | Done processing all local patches! Now processing patches from loaded add-ons...");
+
+            // Executing all patches from all loaded plugins from all loaded assemblies (what a hierarchy)
+            foreach (var plugin in _loadedPlugins)
+            {
+                Message($"I | {plugin.AssemblyName}: Processing plugin: {plugin.TypeName}.");
+
+                foreach (var patch in plugin.Type.GetPatches())
+                    ExecutePatchCli(patch);
+
+                Message($"I | {plugin.AssemblyName}: Done processing: {plugin.TypeName}.");
+            }
+
+            Message("I | Done processing all plugins.");
+
+            if (failedDetails.Any())
+            {
+				Message("I | There's some details about failed patches.");
+
+                foreach (var details in failedDetails)
+                {
+                    details.PrintDetails(Console.Out);
+                    Message();
+                }
+            }
 
             if (!overallSuccess)
             {
-                Console.WriteLine("[MAIN]: There are some failed patches. Do you want to continue?");
-                Console.WriteLine("[MAIN]: Warning: in case of self-update pressing N will leave stock version of osu! without patching it!");
-                Console.Write("Waiting for user input: (y/n) ");
+                Console.WriteLine("I | There are some failed patches. Do you want to continue?");
+                Console.WriteLine("W | In case of self-update pressing 'N' will leave stock version of osu! without patching it!");
+                Console.Write("U | (y/n) ");
 
                 var exit = false;
 
@@ -232,18 +230,18 @@ namespace osu_patch
                 Message();
 
                 if(exit)
-                    return Exit("[MAIN]: Aborted by user.");
+                    return Exit("I | Aborted by user.");
             }
 
 			string filename = Path.GetFileNameWithoutExtension(_obfOsuPath) + "-osupatch" + Path.GetExtension(_obfOsuPath);
 
-			Message($"[MAIN]: Saving assembly as {filename}");
+			Message($"I | Saving assembly as {filename}");
 
 			try
 			{
 				_obfOsuModule.Write(Path.Combine(Path.GetDirectoryName(_obfOsuPath), filename), new ModuleWriterOptions(_obfOsuModule)
 				{
-					MetadataOptions = { Flags = MetadataFlags.KeepOldMaxStack }
+					MetadataOptions = { Flags = DEFAULT_METADATA_FLAGS }
 				});
 			}
 			catch (Exception ex) { return Exit("F | Unable to save patched assembly! Details:\n" + ex); }
@@ -252,11 +250,134 @@ namespace osu_patch
 			_obfOsuModule.Dispose();
 
 #if DEBUG
-				Console.ReadKey(true);
+            Console.ReadKey(true);
+#endif
+
+#if LIVE_DEBUG
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "cmd",
+                Arguments = "/c timeout /T 1 /NOBREAK & move /Y \"osu!-osupatch.exe\" \"osu!.exe\"",
+                WorkingDirectory = Environment.CurrentDirectory,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                CreateNoWindow = true
+            });
 #endif
 
 			return overallSuccess ? 0 : 1;
 		}
+
+        // --- Separate methods (Main is too big anyways lol)
+
+        private static void LoadPlugins()
+        {
+            Message($"I | Now loading all custom add-ons from {Path.GetFileName(PluginsFolderLocation)}/ folder.");
+
+            _loadedPlugins = new List<PluginInfo>();
+
+            if (Directory.Exists(PluginsFolderLocation))
+            {
+                foreach (var file in Directory.GetFiles(PluginsFolderLocation, "*.dll"))
+                {
+                    var fileName = Path.GetFileName(file);
+
+                    try
+                    {
+                        Assembly assembly = Assembly.LoadFile(file);
+
+                        if (assembly.EntryPoint != null)
+                        {
+                            Message($"E | {fileName} is a .NET executable, not a class library!");
+                            continue;
+                        }
+
+                        var types = assembly.GetTypes().Where(a => a.GetInterfaces().Contains(typeof(IOsuPatchPlugin))).ToList();
+
+                        if (!types.Any())
+                        {
+                            Message($"E | {fileName} assembly does not contain a valid IOsuPatchPlugin class.");
+                            continue;
+                        }
+
+                        foreach (var type in types)
+                        {
+                            var plugin = (IOsuPatchPlugin)Activator.CreateInstance(type);
+                            plugin.Load(_obfOsuModule);
+
+                            Message($"I | {fileName}: Loaded plugin: {type.Name}");
+
+                            _loadedPlugins.Add(new PluginInfo(fileName, type.Name, plugin));
+                        }
+                    }
+                    catch (BadImageFormatException ex)
+                    {
+                        if (ex.HResult == -2146234344)
+                            Message($"E | {fileName} is not a valid .NET assembly file!");
+                    }
+                    catch (Exception ex) { Message($"E | Unable to load {fileName}! Details:\n" + ex); }
+                }
+            }
+            else Directory.CreateDirectory(PluginsFolderLocation);
+        }
+
+        private static void InitializeObfOsuExplorer()
+        {
+            var dictFile = Path.Combine(CacheFolderLocation, $"{ObfOsuHash}.dic");
+
+//#if !DEBUG
+            if (File.Exists(dictFile))
+            {
+                Message("I | Found cached name dictionary file for this assembly! Loading names...");
+
+                var nameProvider = SimpleNameProvider.Initialize(File.ReadAllBytes(dictFile));
+                _obfOsuExplorer = new ModuleExplorer(_obfOsuModule, nameProvider);
+            }
+            else
+//#endif
+            {
+                Message("I | No cached name dictionary found! Initializing DefaultNameProvider (NameMapper)...");
+
+#if DEBUG
+                TextWriter debugOut = Console.Out;
+#else
+				TextWriter debugOut = null;
+#endif
+
+                MapperNameProvider.Initialize(_cleanOsuModule, _obfOsuModule, debugOut);
+                File.WriteAllBytes(dictFile, MapperNameProvider.Instance.Pack());
+                _obfOsuExplorer = new ModuleExplorer(_obfOsuModule);
+            }
+        }
+
+        private static void CleanControlFlow()
+        {
+            Message("I | Cleaning control flow of obfuscated assembly");
+
+            Logger.Instance.MaxLoggerEvent = 0;
+
+            var options = new ObfuscatedFile.Options
+            {
+                Filename = _obfOsuPath, // will this work or do i need filename ONLY? yes it will ok
+                ControlFlowDeobfuscation = true,
+                KeepObfuscatorTypes = true,
+                RenamerFlags = 0,
+                StringDecrypterType = DecrypterType.None,
+                MetadataFlags = DEFAULT_METADATA_FLAGS
+            };
+
+            var obfFile = new ObfuscatedFile(options, new ModuleContext(TheAssemblyResolver.Instance), new NewAppDomainAssemblyClientFactory());
+
+            obfFile.DeobfuscatorContext = new DeobfuscatorContext();
+            obfFile.Load(new List<IDeobfuscator> { new de4dot.code.deobfuscators.Unknown.DeobfuscatorInfo().CreateDeobfuscator() });
+
+            obfFile.DeobfuscateBegin();
+            obfFile.Deobfuscate();
+            obfFile.DeobfuscateEnd();
+
+            _obfOsuModule = obfFile.ModuleDefMD;
+        }
+
+        // --- Misc methods
 
         private static int Message(string msg = "")
         {
@@ -267,7 +388,7 @@ namespace osu_patch
 #if DEBUG
         private static int Exit(string msg = "")
         {
-            Console.WriteLine(msg + "\n-=-=-=-=-=-=-=-=-=-=- EXIT EXIT EXIT");
+            Console.WriteLine(msg + "\n\n[DEBUG]: Exited.");
             Console.ReadKey(true);
             return 1;
         }
@@ -275,6 +396,8 @@ namespace osu_patch
         private static int Exit(string msg = "") => Message(msg);
 #endif
     }
+
+    
 
     public static class OsuPatchExtensions
 	{
