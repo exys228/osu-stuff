@@ -1,21 +1,20 @@
-﻿using dnlib.DotNet;
+﻿using de4dot.code;
+using de4dot.code.AssemblyClient;
+using de4dot.code.deobfuscators;
+using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using dnlib.DotNet.Writer;
+using osu_patch.Custom;
 using osu_patch.Explorers;
+using osu_patch.Misc;
 using osu_patch.Naming;
+using StringFixerMini;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Reflection;
-using de4dot.code;
-using de4dot.code.AssemblyClient;
-using de4dot.code.deobfuscators;
-using osu_patch.Custom;
-using osu_patch.Misc;
-using StringFixerMini;
 
 namespace osu_patch
 {
@@ -48,8 +47,7 @@ namespace osu_patch
 		{
 			AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
 			{
-				Message("F | Unhandled exception! This shouldn't occur. Details:\n" + eventArgs.ExceptionObject);
-				Console.ReadKey(true);
+				Exit("F | Unhandled exception! This shouldn't occur. Details:\n" + eventArgs.ExceptionObject); // exit because ReadKey is needed if configuration is debug
 				Environment.Exit(1);
 			};
 
@@ -234,7 +232,7 @@ namespace osu_patch
 
 					if (key == ConsoleKey.Y)
 						break;
-					
+
 					if (key == ConsoleKey.N)
 					{
 						exit = true;
@@ -244,7 +242,7 @@ namespace osu_patch
 
 				Message();
 
-				if(exit)
+				if (exit)
 					return Exit("I | Aborted by user.");
 			}
 
@@ -339,7 +337,7 @@ namespace osu_patch
 		{
 			var dictFile = Path.Combine(CacheFolderLocation, $"{ObfOsuHash}.dic");
 
-//#if !DEBUG
+			//#if !DEBUG
 			if (File.Exists(dictFile))
 			{
 				Message("I | Found cached name dictionary file for this assembly! Loading names...");
@@ -348,7 +346,7 @@ namespace osu_patch
 				_obfOsuExplorer = new ModuleExplorer(_obfOsuModule, nameProvider);
 			}
 			else
-//#endif
+			//#endif
 			{
 				Message("I | No cached name dictionary found! Initializing DefaultNameProvider (NameMapper)...");
 
@@ -412,7 +410,7 @@ namespace osu_patch
 #endif
 	}
 
-	
+
 
 	public static class OsuPatchExtensions
 	{
@@ -426,7 +424,7 @@ namespace osu_patch
 
 			if (index < 0)
 				throw new ArgumentException($"Expected index >= 0, but received {index}.");
-			
+
 			Array.Reverse(instructions);
 
 			for (int i = 0; i < instructions.Length; i++)

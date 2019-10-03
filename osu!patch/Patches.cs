@@ -9,10 +9,11 @@ using System.Reflection;
 using System.Reflection.Emit;
 using osu_patch.Explorers;
 using osu_patch.Misc;
+
+using OpCodes = dnlib.DotNet.Emit.OpCodes;
 using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
-using OpCodes = dnlib.DotNet.Emit.OpCodes;
 
 namespace osu_patch
 {

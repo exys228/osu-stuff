@@ -1,11 +1,9 @@
 ﻿using dnlib.DotNet.Emit;
+using osu_patch.Exceptions;
 using osu_patch.Explorers;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using de4dot.code.deobfuscators;
-using osu_patch.Exceptions;
 
 namespace osu_patch.Editors
 {
@@ -30,7 +28,7 @@ namespace osu_patch.Editors
 			get => _position;
 			private set
 			{
-				if(value < 0)
+				if (value < 0)
 					throw new IndexOutOfRangeException("New position is lower than zero!");
 
 				if (value > Count)
@@ -173,7 +171,7 @@ namespace osu_patch.Editors
 						i++;
 					}
 
-					while(i < list.Count) // add at end if something is left
+					while (i < list.Count) // add at end if something is left
 						Add(list[i++]);
 
 					break;
@@ -209,7 +207,7 @@ namespace osu_patch.Editors
 				else Instrs[index + i].OpCode = OpCodes.Nop;
 			}
 
-			if(newList.Count > 0)
+			if (newList.Count > 0)
 				InsertAt(index + count, newList);
 
 			SimplifyAndOptimize();
@@ -222,7 +220,7 @@ namespace osu_patch.Editors
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
 		public int Next(OpCode opCode, bool setPosition = true)
 		{
-			for(int i = _position; i < Count; i++)
+			for (int i = _position; i < Count; i++)
 				if (Instrs[i].OpCode == opCode)
 					return setPosition ? Position = i : i;
 

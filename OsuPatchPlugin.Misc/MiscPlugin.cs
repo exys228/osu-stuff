@@ -12,7 +12,7 @@ namespace OsuPatchPlugin.Misc
 {
 	public class MiscPlugin : IOsuPatchPlugin
 	{
-		private const string OsuBaseUrl = "osu.ppy.sh";
+		private const string OSU_BASE_URL = "osu.ppy.sh";
 
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
@@ -153,7 +153,7 @@ namespace OsuPatchPlugin.Misc
 
 				// TODO replace all ldstrs in all method bodies
 
-				var baseUrlField = new FieldDefUser("OsuBaseUrl", new FieldSig(exp.Module.CorLibTypes.String), FieldAttributes.Public | FieldAttributes.Static);
+				var baseUrlField = new FieldDefUser("OSU_BASE_URL", new FieldSig(exp.Module.CorLibTypes.String), FieldAttributes.Public | FieldAttributes.Static);
 
 				var urlsType = exp["osu.Urls"].Type;
 
@@ -185,7 +185,7 @@ namespace OsuPatchPlugin.Misc
 							if (str is null)
 								continue;
 
-							if (str.Contains(OsuBaseUrl))
+							if (str.Contains(OSU_BASE_URL))
 							{
 								editor.Replace(i, AsukiPatch_UniversalizeOsuURL(exp, str, baseUrlField));
 								// Console.WriteLine($"{meth.DeclaringType.Name}::{meth.Name}");
@@ -230,7 +230,7 @@ namespace OsuPatchPlugin.Misc
 			return ret;
 		}
 
-		private static IList<Instruction> AsukiPatch_UniversalizeOsuURL(ModuleExplorer exp, string str, FieldDef baseUrlField, string baseUrl = OsuBaseUrl)
+		private static IList<Instruction> AsukiPatch_UniversalizeOsuURL(ModuleExplorer exp, string str, FieldDef baseUrlField, string baseUrl = OSU_BASE_URL)
 		{
 			var parts = str.Split(new[] { baseUrl }, StringSplitOptions.None);
 
