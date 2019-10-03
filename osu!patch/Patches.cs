@@ -111,7 +111,7 @@ namespace osu_patch
 					OpCodes.Ldc_I4_1
 				});
 
-				MethodDefUser patchMethod = PatchPatch_CreatePatchMethod(exp);
+				MethodDefUser patchMethod = PatchOnUpdatePatch_CreatePatchMethod(exp);
 				type.Type.Methods.Add(patchMethod);
 
 				var op_Equality = exp.Module.CreateMethodRef(true, typeof(String), "op_Equality", typeof(bool), typeof(string), typeof(string));
@@ -498,7 +498,7 @@ namespace osu_patch
 			#endregion
 		};
 
-		private static MethodDefUser PatchPatch_CreatePatchMethod(ModuleExplorer exp)
+		private static MethodDefUser PatchOnUpdatePatch_CreatePatchMethod(ModuleExplorer exp)
 		{
 			var obfOsuModule = exp.Module;
 
