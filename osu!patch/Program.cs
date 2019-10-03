@@ -56,6 +56,21 @@ namespace osu_patch
 #if LIVE_DEBUG
 			Environment.CurrentDirectory = @"C:\osu!";
 			ExecutingAssemblyLocation = @"C:\osu!\osu!patch";
+
+			var proc = new Process
+			{
+				StartInfo = new ProcessStartInfo
+				{
+					FileName = @"OsuVersionDownloader\OsuVersionDownloader.exe",
+					Arguments = "Stable40 osu!.exe",
+					WindowStyle = ProcessWindowStyle.Hidden,
+					CreateNoWindow = true
+				}
+			};
+
+			proc.Start();
+			proc.WaitForExit();
+
 #else
 			ExecutingAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 #endif

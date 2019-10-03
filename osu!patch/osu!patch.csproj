@@ -121,8 +121,6 @@ IF NOT EXIST "osu!patch\" mkdir "osu!patch\"
 echo Copying $(TargetFileName)
 COPY /Y "$(TargetPath)" "osu!patch\$(TargetFileName)"
 echo Copying all .dll references
-COPY /Y "$(TargetDir)*.dll" "osu!patch\"
-echo Updating C:\osu!\osu!.exe to latest Stable40 release
-"OsuVersionDownloader\OsuVersionDownloader.exe" "Stable40" "osu!.exe"</PostBuildEvent>
+COPY /Y "$(TargetDir)*.dll" "osu!patch\"</PostBuildEvent>
   </PropertyGroup>
 </Project>
