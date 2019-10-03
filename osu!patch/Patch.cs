@@ -25,15 +25,15 @@ namespace osu_patch
 			if (!Enabled)
 				return new PatchResult(this, PatchStatus.Disabled);
 
-            try
-            {
-                return _patchMethod(this, exp);
-            }
-            catch (Exception ex)
-            {
-                return new PatchResult(this, PatchStatus.Exception, ex: ex);
-            }
-        }
+			try
+			{
+				return _patchMethod(this, exp);
+			}
+			catch (Exception ex)
+			{
+				return new PatchResult(this, PatchStatus.Exception, ex: ex);
+			}
+		}
 	}
 
 	public delegate PatchResult PatchFunction(Patch parent, ModuleExplorer exp);

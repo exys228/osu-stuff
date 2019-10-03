@@ -19,12 +19,12 @@ namespace NameMapper.CLI
 		private static string _cleanModulePath;
 		private static string _obfModulePath;
 
-        private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
-                                                             MetadataFlags.PreserveUSOffsets |
-                                                             MetadataFlags.PreserveBlobOffsets |
-                                                             MetadataFlags.PreserveExtraSignatureData;
+		private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
+															 MetadataFlags.PreserveUSOffsets |
+															 MetadataFlags.PreserveBlobOffsets |
+															 MetadataFlags.PreserveExtraSignatureData;
 
-        static int Main(string[] args)
+		static int Main(string[] args)
 		{
 			if (args.Length < 2)
 				return Message("NameMapper.CLI - map names from assembly with deobfuscated names to assembly with obfuscated names\n" +

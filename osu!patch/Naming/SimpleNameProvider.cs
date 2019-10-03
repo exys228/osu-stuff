@@ -36,13 +36,13 @@ namespace osu_patch.Naming
 			=> new Dictionary<string, string>(_names);
 
 		public string GetName(string name)
-        {
-            string obfName = null;
+		{
+			string obfName = null;
 
-            if(_names is null || !_names.TryGetValue(name, out obfName))
-                throw new NameProviderException("Unable to find name: " + name);
+			if(_names is null || !_names.TryGetValue(name, out obfName))
+				throw new NameProviderException("Unable to find name: " + name);
 
-            return obfName;
-        }
+			return obfName;
+		}
 	}
 }

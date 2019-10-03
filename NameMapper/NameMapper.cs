@@ -102,9 +102,9 @@ namespace NameMapper
 
 						if(obfMethod != null)
 						{
-                            EnqueueRecurseThread(cleanMethod, obfMethod, recurseNum);
-                            recurseNum += 1000000000;
-                        }
+							EnqueueRecurseThread(cleanMethod, obfMethod, recurseNum);
+							recurseNum += 1000000000;
+						}
 					}
 
 					_namableProcessor.AlreadyProcessedTypes[kvp.Key] = true;
@@ -136,11 +136,11 @@ namespace NameMapper
 			var allTypesCount = ObfModule.CountTypes(x => !x.IsEazInternalName());
 			var processedOutOfAll = (float)processedTypesCount / allTypesCount;
 
-            if (processedOutOfAll < DefaultMinimalSuccessPercentage)
+			if (processedOutOfAll < DefaultMinimalSuccessPercentage)
 				throw new NameMapperProcessingException($"Processed types percentage: {processedTypesCount}/{allTypesCount} => {processedOutOfAll * 100}% < {DefaultMinimalSuccessPercentage * 100}% (min), counting as unsuccessful.");
 
 			// -- END
-        }
+		}
 
 		public string FindName(string cleanName)
 		{
@@ -148,7 +148,7 @@ namespace NameMapper
 
 			if(Processed)
 				if(!NamePairs.TryGetValue(cleanName, out obfName))
-                    throw new NameMapperException("Unable to find specified name: " + cleanName);
+					throw new NameMapperException("Unable to find specified name: " + cleanName);
 
 			return obfName;
 		}
@@ -259,14 +259,14 @@ namespace NameMapper
 			if (Monitor.TryEnter(obfMethod)) // clean is used in OperandProcessors.ProcessMethod, hardcoded but that's important
 			{
 				try
-                {
-                    if (_namableProcessor.ProcessMethod(cleanMethod, obfMethod) != ProcessResult.Ok)
-                        return new RecurseResult(RecurseResultEnum.Ok); // may be framework type/already in process/different methods etc.
+				{
+					if (_namableProcessor.ProcessMethod(cleanMethod, obfMethod) != ProcessResult.Ok)
+						return new RecurseResult(RecurseResultEnum.Ok); // may be framework type/already in process/different methods etc.
 
-                    IList<Instruction> cleanInstr = cleanMethod.Body?.Instructions;
-                    IList<Instruction> obfInstr = obfMethod.Body?.Instructions;
+					IList<Instruction> cleanInstr = cleanMethod.Body?.Instructions;
+					IList<Instruction> obfInstr = obfMethod.Body?.Instructions;
 
-                    if (cleanMethod.HasBody != obfMethod.HasBody)
+					if (cleanMethod.HasBody != obfMethod.HasBody)
 						return new RecurseResult(RecurseResultEnum.DifferentMethods);
 
 					if (!cleanMethod.HasBody)
@@ -292,8 +292,8 @@ namespace NameMapper
 							continue;
 
 						if (cleanOperand is IMethod)
-                            EnqueueRecurseThread(cleanOperand as IMethod, obfOperand as IMethod, recurseLevel + 1);
-                        else if (cleanOperand is ITypeDefOrRef)
+							EnqueueRecurseThread(cleanOperand as IMethod, obfOperand as IMethod, recurseLevel + 1);
+						else if (cleanOperand is ITypeDefOrRef)
 							_namableProcessor.ProcessType(cleanOperand as ITypeDefOrRef, obfOperand as ITypeDefOrRef);
 						else if (cleanOperand is FieldDef)
 							_namableProcessor.ProcessField(cleanOperand as FieldDef, obfOperand as FieldDef);

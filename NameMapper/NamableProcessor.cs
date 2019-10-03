@@ -128,14 +128,14 @@ namespace NameMapper
 								obfMethodDef.Name = cleanMethodDef.Name;
 						}
 
-                        ThreadPool.QueueUserWorkItem(state =>
-                        {
-                            ProcessType(cleanMethodDef.ReturnType, obfMethodDef.ReturnType);
-                            ProcessType(cleanMethodDef.DeclaringType, obfMethodDef.DeclaringType);
-                            ProcessMethodParameters(cleanMethodDef.Parameters, obfMethodDef.Parameters);
-                        });
+						ThreadPool.QueueUserWorkItem(state =>
+						{
+							ProcessType(cleanMethodDef.ReturnType, obfMethodDef.ReturnType);
+							ProcessType(cleanMethodDef.DeclaringType, obfMethodDef.DeclaringType);
+							ProcessMethodParameters(cleanMethodDef.Parameters, obfMethodDef.Parameters);
+						});
 
-                        AlreadyProcessedMethods.Add(new MethodPair(cleanMethodDef, obfMethodDef));
+						AlreadyProcessedMethods.Add(new MethodPair(cleanMethodDef, obfMethodDef));
 					}
 					else return ProcessResult.FrameworkType;
 				}

@@ -24,13 +24,13 @@ namespace osu_patch.Misc
 		public void PrintDetails(TextWriter writer)
 		{
 			writer.WriteLine("Patch name: " + PatchName);
-            writer.WriteLine("Execution result: " + Result);
+			writer.WriteLine("Execution result: " + Result);
 
 			if (!string.IsNullOrEmpty(Message))
-                writer.WriteLine("Message: " + Message);
+				writer.WriteLine("Message: " + Message);
 
 			if (Exception != null)
-                writer.WriteLine("Exception details:\n" + Exception);
+				writer.WriteLine("Exception details:\n" + Exception);
 		}
 	}
 

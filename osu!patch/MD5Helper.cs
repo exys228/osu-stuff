@@ -13,7 +13,7 @@ namespace osu_patch
 				using (var stream = File.OpenRead(filename))
 				{
 					var hash = md5.ComputeHash(stream);
-                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+					return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
 				}
 			}
 		}

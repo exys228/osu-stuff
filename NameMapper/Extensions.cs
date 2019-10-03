@@ -22,30 +22,30 @@ namespace NameMapper
 
 		public static bool IsFromModule(this FieldDef fieldDef, NameMapper mapperInstance) => fieldDef.Module.Assembly == mapperInstance.CleanModule.Assembly || fieldDef.Module.Assembly == mapperInstance.ObfModule.Assembly;
 
-        public static bool NameIsObfuscated(this IFullName fullName) => fullName.Name.StartsWith("#=z");
+		public static bool NameIsObfuscated(this IFullName fullName) => fullName.Name.StartsWith("#=z");
 
-        public static bool IsEazInternalName(this IFullName fullName) => fullName.Name.StartsWith("#=q");
+		public static bool IsEazInternalName(this IFullName fullName) => fullName.Name.StartsWith("#=q");
 
-        public static int CountTypes(this ModuleDef module) => module.CountTypes(x => true);
+		public static int CountTypes(this ModuleDef module) => module.CountTypes(x => true);
 
-        public static int CountTypes(this ModuleDef module, Predicate<IFullName> predicate)
-        {
-            var count = 0;
+		public static int CountTypes(this ModuleDef module, Predicate<IFullName> predicate)
+		{
+			var count = 0;
 
-            void Count(TypeDef type)
-            {
-                foreach (var nestedType in type.NestedTypes)
-                    if(predicate(type))
-                        Count(nestedType);
+			void Count(TypeDef type)
+			{
+				foreach (var nestedType in type.NestedTypes)
+					if(predicate(type))
+						Count(nestedType);
 
-                count++;
-            }
+				count++;
+			}
 
-            foreach (var type in module.Types)
-                if (predicate(type))
-                    Count(type);
+			foreach (var type in module.Types)
+				if (predicate(type))
+					Count(type);
 
-            return count;
-        }
+			return count;
+		}
 	}
 }

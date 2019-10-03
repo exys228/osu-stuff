@@ -24,12 +24,12 @@ namespace osu_patch.Naming
 				_nameMapper = new NameMapper.NameMapper(cleanModule, obfModule, debugOutput, renameNames) { ShowErroredMethods = false }
 			};
 
-            newInstance._nameMapper.BeginProcessing();
+			newInstance._nameMapper.BeginProcessing();
 
-            if (renameNames)
-                obfModule.ResetTypeDefFindCache();
+			if (renameNames)
+				obfModule.ResetTypeDefFindCache();
 
-            return Instance = newInstance;
+			return Instance = newInstance;
 		}
 
 		public byte[] Pack()

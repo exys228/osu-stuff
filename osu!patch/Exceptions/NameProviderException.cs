@@ -3,14 +3,14 @@ using System.Runtime.Serialization;
 
 namespace osu_patch.Exceptions
 {
-    public class NameProviderException : Exception
-    {
-        public NameProviderException() { }
+	public class NameProviderException : Exception
+	{
+		public NameProviderException() { }
 
-        public NameProviderException(string message) : base(message) { }
+		public NameProviderException(string message) : base(message) { }
 
-        public NameProviderException(string message, Exception inner) : base(message, inner) { }
+		public NameProviderException(string message, Exception inner) : base(message, inner) { }
 
-        protected NameProviderException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-    }
+		protected NameProviderException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+	}
 }
