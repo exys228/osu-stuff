@@ -54,7 +54,7 @@ namespace StringFixerMini
 						if (!dictionary.ContainsKey(val))
 							dictionary[val] = (string)decrypter.Invoke(null, new object[] { val });
 
-						// check if str == .ctor due to eaz using string decryptor to call constructors
+						// check if str == .ctor due to eaz using string decrypter to call constructors
 						// if (dictionary[val] == ".ctor"/* && Flags.VirtFix*/) continue;
 
 						//replace the instructions with the string
