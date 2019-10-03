@@ -19,7 +19,12 @@ namespace NameMapper.CLI
 		private static string _cleanModulePath;
 		private static string _obfModulePath;
 
-		static int Main(string[] args)
+        private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
+                                                             MetadataFlags.PreserveUSOffsets |
+                                                             MetadataFlags.PreserveBlobOffsets |
+                                                             MetadataFlags.PreserveExtraSignatureData;
+
+        static int Main(string[] args)
 		{
 			if (args.Length < 2)
 				return Message("NameMapper.CLI - map names from assembly with deobfuscated names to assembly with obfuscated names\n" +
@@ -56,7 +61,7 @@ namespace NameMapper.CLI
 			Path.GetDirectoryName(_obfModulePath) ?? throw new NameMapperCliException("Path to write module to is null unexpectedly"), filename),
 			new ModuleWriterOptions(_obfModule)
 			{
-				MetadataOptions = { Flags = MetadataFlags.PreserveAll }
+				MetadataOptions = { Flags = DEFAULT_METADATA_FLAGS }
 			});
 
 			Console.ReadKey(true);

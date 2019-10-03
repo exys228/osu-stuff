@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using dnlib.DotNet;
 using dnlib.DotNet.Writer;
+using StringFixerMini;
 
 namespace StringFixerMini.CLI
 {
@@ -17,7 +18,12 @@ namespace StringFixerMini.CLI
 
 		private static string _modulePath;
 
-		static int Main(string[] args)
+        private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
+                                                             MetadataFlags.PreserveUSOffsets |
+                                                             MetadataFlags.PreserveBlobOffsets |
+                                                             MetadataFlags.PreserveExtraSignatureData;
+
+        static int Main(string[] args)
 		{
 			if (args.Length < 1)
 				return Message("StringFixerMini.CLI\n" +
@@ -40,7 +46,7 @@ namespace StringFixerMini.CLI
 
 			StringFixer.Fix(_module, _assembly);
 
-			string filename = Path.GetFileNameWithoutExtension(_modulePath) + "-string" + Path.GetExtension(_modulePath);
+            string filename = Path.GetFileNameWithoutExtension(_modulePath) + "-string" + Path.GetExtension(_modulePath);
 
 			Message("I | Finally writing module back (with \"-string\" tag)!");
 
@@ -49,7 +55,7 @@ namespace StringFixerMini.CLI
 			Path.GetDirectoryName(_modulePath) ?? throw new StringFixerCliException("Path to write module to is null unexpectedly"), filename),
 			new ModuleWriterOptions(_module)
 			{
-				MetadataOptions = { Flags = MetadataFlags.PreserveAll }
+				MetadataOptions = { Flags = DEFAULT_METADATA_FLAGS }
 			});
 
 			Console.ReadKey(true);
