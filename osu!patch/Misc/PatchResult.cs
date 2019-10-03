@@ -3,7 +3,7 @@ using System.IO;
 
 namespace osu_patch.Misc
 {
-	class PatchResult
+	public class PatchResult
 	{
 		public string PatchName { get; }
 
@@ -34,7 +34,7 @@ namespace osu_patch.Misc
 		}
 	}
 
-	enum PatchStatus
+	public enum PatchStatus
 	{
 		Disabled,
 		Exception,

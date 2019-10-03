@@ -2,7 +2,7 @@
 
 namespace osu_patch.Naming
 {
-	interface INameProvider
+	public interface INameProvider
 	{
 		string GetName(string name);
 		Dictionary<string, string> GetNamePairs();

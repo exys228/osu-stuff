@@ -9,7 +9,7 @@ using osu_patch.Exceptions;
 
 namespace osu_patch.Editors
 {
-	class MethodEditor
+	public class MethodEditor
 	{
 		public MethodExplorer Parent { get; }
 

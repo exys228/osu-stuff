@@ -6,7 +6,7 @@ using osu_patch.Editors;
 
 namespace osu_patch.Explorers
 {
-	class MethodExplorer
+	public class MethodExplorer
 	{
 		public TypeExplorer Parent { get; }
 

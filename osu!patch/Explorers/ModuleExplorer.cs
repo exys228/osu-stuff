@@ -5,7 +5,7 @@ using osu_patch.Exceptions;
 
 namespace osu_patch.Explorers
 {
-	class ModuleExplorer
+	public class ModuleExplorer
 	{
 		public ModuleDefMD Module { get; }
 

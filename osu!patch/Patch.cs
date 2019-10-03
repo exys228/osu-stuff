@@ -5,7 +5,7 @@ using osu_patch.Misc;
 
 namespace osu_patch
 {
-	class Patch
+	public class Patch
 	{
 		public string Name { get; }
 
@@ -36,5 +36,5 @@ namespace osu_patch
         }
 	}
 
-	delegate PatchResult PatchFunction(Patch parent, ModuleExplorer exp);
+	public delegate PatchResult PatchFunction(Patch parent, ModuleExplorer exp);
 }

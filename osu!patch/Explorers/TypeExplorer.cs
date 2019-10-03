@@ -5,7 +5,7 @@ using osu_patch.Exceptions;
 
 namespace osu_patch.Explorers
 {
-	class TypeExplorer
+	public class TypeExplorer
 	{
 		public ModuleExplorer Parent { get; }
 
