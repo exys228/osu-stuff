@@ -3,4 +3,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <StartArguments>clean.exe obf_.exe</StartArguments>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'LiveDebug|AnyCPU'">
+    <StartArguments>clean.exe obf_.exe</StartArguments>
+  </PropertyGroup>
 </Project>

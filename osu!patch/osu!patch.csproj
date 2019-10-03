@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>osu_patch</RootNamespace>
     <AssemblyName>osu!patch</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -32,6 +32,23 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'LiveDebug|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\LiveDebug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;LIVE_DEBUG</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="de4dot.code">
       <HintPath>lib\de4dot\de4dot.code.dll</HintPath>
@@ -49,12 +66,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Custom\IOsuPatchPlugin.cs" />
     <Compile Include="Exceptions\ExplorerFindException.cs" />
     <Compile Include="Exceptions\MethodEditorLocateException.cs" />
     <Compile Include="Exceptions\NameProviderException.cs" />
     <Compile Include="Explorers\MethodExplorer.cs" />
     <Compile Include="Explorers\TypeExplorer.cs" />
     <Compile Include="Misc\PatchResult.cs" />
+    <Compile Include="Misc\PluginInfo.cs" />
     <Compile Include="Naming\INameProvider.cs" />
     <Compile Include="Editors\MethodEditor.cs" />
     <Compile Include="Naming\SimpleNameProvider.cs" />
@@ -88,7 +107,22 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
+    <PreBuildEvent>IF /I NOT "$(ConfigurationName)"=="LiveDebug" exit
+echo Configuration is LiveDebug! Removing all stuff from C:\osu!\osu!patch
+DEL /F "C:\osu!\osu!patch\*.dll"
+DEL /F "C:\osu!\osu!patch\osu!patch.exe"
+DEL /Q "C:\osu!\osu!patch\plugins\"</PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>IF /I NOT "$(ConfigurationName)"=="LiveDebug" exit
+echo Configuration is LiveDebug! Copying all stuff to C:\osu!\osu!patch
+CD "C:\osu!\"
+IF NOT EXIST "osu!patch\" mkdir "osu!patch\"
+echo Copying $(TargetFileName)
+COPY /Y "$(TargetPath)" "osu!patch\$(TargetFileName)"
+echo Copying all .dll references
+COPY /Y "$(TargetDir)*.dll" "osu!patch\"
+echo Updating C:\osu!\osu!.exe to latest Stable40 release
+"OsuVersionDownloader\OsuVersionDownloader.exe" "Stable40" "osu!.exe"</PostBuildEvent>
   </PropertyGroup>
 </Project>

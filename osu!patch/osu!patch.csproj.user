@@ -6,4 +6,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <StartArguments>clean.exe obf.exe</StartArguments>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'LiveDebug|AnyCPU'">
+    <StartArguments>osu!patch\clean.exe osu!.exe</StartArguments>
+  </PropertyGroup>
 </Project>
