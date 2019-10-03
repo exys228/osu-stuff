@@ -25,11 +25,8 @@ namespace StringFixerMini
 			public static void Postfix(ref MethodBase __result)
 			{
 				if (__result.DeclaringType == typeof(RuntimeMethodHandle))
-				{
-					__result = MethodToReplace ?? MethodBase.GetCurrentMethod();
-					Console.WriteLine("[Harmony] Patched stacktrace entry");
-				}
-			}
+                    __result = MethodToReplace ?? MethodBase.GetCurrentMethod();
+            }
 		}
 	}
 }
