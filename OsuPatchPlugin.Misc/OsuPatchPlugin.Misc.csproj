@@ -67,18 +67,18 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>IF "$(ConfigurationName)"=="LiveDebug" goto livedeb
+    <PostBuildEvent>IF "$(ConfigurationName)"=="LiveDebug" GOTO livedeb
 CD "$(SolutionDir)osu!patch\bin\$(ConfigurationName)"
-goto cpy
+GOTO cpy
 
 :livedeb
-echo Configuration is LiveDebug! Changing directory to C:\osu!\osu!patch
+ECHO Configuration is LiveDebug! Changing directory to C:\osu!\osu!patch
 CD "C:\osu!\osu!patch"
 
 :cpy
-echo Copying $(ProjectName) plugin to plugins\
+ECHO Copying $(ProjectName) plugin to plugins\
 IF NOT EXIST "plugins\" MKDIR "plugins"
 COPY /Y "$(TargetPath)" "plugins\"
-exit /b 0</PostBuildEvent>
+EXIT /B 0</PostBuildEvent>
   </PropertyGroup>
 </Project>
