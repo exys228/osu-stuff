@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using NameMapper.Exceptions;
@@ -82,13 +83,13 @@ namespace NameMapper
 			{
 				long recurseNum = 0;
 
-				foreach (var kvp in _namableProcessor.AlreadyProcessedTypes)
+				foreach (var item in _namableProcessor.AlreadyProcessedTypes.Where(x => !x.Types.Item2.IsEazInternalName()))
 				{
-					if (kvp.Value) // already fully processed
+					if (item.FullyProcessed)
 						continue;
 
-					var cleanMethods = kvp.Key.Item1.ScopeType.ResolveTypeDef()?.Methods;
-					var obfMethods = kvp.Key.Item2.ScopeType.ResolveTypeDef()?.Methods;
+					var cleanMethods = item.Types.Item1.ScopeType.ResolveTypeDef()?.Methods.Where(x => !x.IsEazInternalName()).ToList();
+					var obfMethods = item.Types.Item2.ScopeType.ResolveTypeDef()?.Methods.Where(x => !x.IsEazInternalName()).ToList();
 
 					if (cleanMethods is null || obfMethods is null)
 						continue;
@@ -100,14 +101,14 @@ namespace NameMapper
 					{
 						var obfMethod = obfUniqueMethods.FirstOrDefault(x => AreOpcodesEqual(cleanMethod?.Body?.Instructions, x.Body?.Instructions));
 
-						if(obfMethod != null)
+						if (obfMethod != null)
 						{
 							EnqueueRecurseThread(cleanMethod, obfMethod, recurseNum);
 							recurseNum += 1000000000;
 						}
 					}
 
-					_namableProcessor.AlreadyProcessedTypes[kvp.Key] = true;
+					item.FullyProcessed = true;
 				}
 
 				WaitMakeSure();
@@ -130,7 +131,7 @@ namespace NameMapper
 			if (_overallErroredMethods > 0)
 				Message($"W | Not all methods are processed! {_overallErroredMethods} left behind.");
 
-			Message($"I | Overall known classes: {_namableProcessor.AlreadyProcessedTypes.Count}; Fully processed classes: {_namableProcessor.AlreadyProcessedTypes.Count(x => x.Value)}");
+			Message($"I | Overall known classes: {_namableProcessor.AlreadyProcessedTypes.Count}; Fully processed classes: {_namableProcessor.AlreadyProcessedTypes.Count(x => x.FullyProcessed)}");
 
 			var processedTypesCount = _namableProcessor.AlreadyProcessedTypes.Count;
 			var allTypesCount = ObfModule.CountTypes(x => !x.IsEazInternalName());
@@ -263,13 +264,10 @@ namespace NameMapper
 					if (_namableProcessor.ProcessMethod(cleanMethod, obfMethod) != ProcessResult.Ok)
 						return new RecurseResult(RecurseResultEnum.Ok); // may be framework type/already in process/different methods etc.
 
-					IList<Instruction> cleanInstr = cleanMethod.Body?.Instructions;
-					IList<Instruction> obfInstr = obfMethod.Body?.Instructions;
+					var cleanInstr = cleanMethod.Body?.Instructions;
+					var obfInstr = obfMethod.Body?.Instructions;
 
-					if (cleanMethod.HasBody != obfMethod.HasBody)
-						return new RecurseResult(RecurseResultEnum.DifferentMethods);
-
-					if (!cleanMethod.HasBody)
+					if (!cleanMethod.HasBody || !obfMethod.HasBody)
 						return new RecurseResult(RecurseResultEnum.Ok); // all possible things are done at this moment
 
 					// ReSharper disable PossibleNullReference
@@ -293,8 +291,8 @@ namespace NameMapper
 
 						if (cleanOperand is IMethod)
 							EnqueueRecurseThread(cleanOperand as IMethod, obfOperand as IMethod, recurseLevel + 1);
-						else if (cleanOperand is ITypeDefOrRef)
-							_namableProcessor.ProcessType(cleanOperand as ITypeDefOrRef, obfOperand as ITypeDefOrRef);
+						else if (cleanOperand is IType)
+							_namableProcessor.ProcessType(cleanOperand as IType, obfOperand as IType);
 						else if (cleanOperand is FieldDef)
 							_namableProcessor.ProcessField(cleanOperand as FieldDef, obfOperand as FieldDef);
 
@@ -330,11 +328,50 @@ namespace NameMapper
 				var cleanOpcode = cleanInstructions[i].OpCode;
 				var obfOpcode = obfInstructions[i].OpCode;
 
+				if (cleanOpcode != obfOpcode)
+					return false;
+
 				var cleanOperand = cleanInstructions[i].Operand;
 				var obfOperand = obfInstructions[i].Operand;
 
-				if (cleanOpcode != obfOpcode)
+				/* // this doesn't really add any improvement in ExcludeMethodsDuplicatesByOpcodes as i expected, only REALLY slows down mapping speed
+				if (cleanOperand is null || obfOperand is null)
+					continue;
+
+				if (cleanOperand.GetType() != obfOperand.GetType())
 					return false;
+
+				if (cleanOperand is IMethod)
+				{
+					var cleanMethod = cleanOperand as IMethod;
+					var obfMethod = obfOperand as IMethod;
+
+					var expectedObfMethod = _namableProcessor.AlreadyProcessedMethods.FirstOrDefault(x => x.Item1.MDToken == cleanMethod.MDToken)?.Item2;
+
+					if (expectedObfMethod != null && obfMethod.MDToken != expectedObfMethod.MDToken)
+						return false;
+				}
+				else if (cleanOperand is IType)
+				{
+					var cleanType = cleanOperand as IType;
+					var obfType = obfOperand as IType;
+
+					var expectedObfType = _namableProcessor.AlreadyProcessedTypes.FirstOrDefault(x => x.Types.Item1.MDToken == cleanType.MDToken)?.Types.Item2;
+
+					if (expectedObfType != null && obfType.MDToken != expectedObfType.MDToken)
+						return false;
+				}
+				else if (cleanOperand is FieldDef)
+				{
+					var cleanField = cleanOperand as FieldDef;
+					var obfField = obfOperand as FieldDef;
+
+					var expectedObfField = _namableProcessor.AlreadyProcessedFields.FirstOrDefault(x => x.Item1.MDToken == cleanField.MDToken)?.Item2;
+
+					if (expectedObfField != null && obfField.MDToken != expectedObfField.MDToken)
+						return false;
+				}
+				*/
 
 				/*if (cleanOperand is null || obfOperand is null || cleanOperand.GetType() != obfOperand.GetType())
 					continue; // ???????
@@ -357,10 +394,10 @@ namespace NameMapper
 			return false;
 		}
 
-		private class RecurseResult
+		private struct RecurseResult
 		{
-			public RecurseResultEnum Result { get; }
-			public int Difference { get; }
+			public RecurseResultEnum Result;
+			public int Difference;
 
 			public RecurseResult(RecurseResultEnum result, int diff = 0)
 			{

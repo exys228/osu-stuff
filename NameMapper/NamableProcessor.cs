@@ -18,8 +18,7 @@ namespace NameMapper
 		/// <summary>
 		/// Bool - is fully processed or not. Used after recurse from Main.
 		/// </summary>
-		public ConcurrentDictionary<TypePair, bool> AlreadyProcessedTypes = new ConcurrentDictionary<TypePair, bool>();
-
+		public ConcurrentBag<TypePairInfo> AlreadyProcessedTypes = new ConcurrentBag<TypePairInfo>();
 		public ConcurrentBag<MethodPair> AlreadyProcessedMethods = new ConcurrentBag<MethodPair>();
 		public ConcurrentBag<FieldPair> AlreadyProcessedFields = new ConcurrentBag<FieldPair>();
 
@@ -61,7 +60,7 @@ namespace NameMapper
 				{
 					if (cleanType.IsFromModule(ParentInstance) && obfType.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedTypes.Any(x => x.Key.Item2.MDToken == obfType.MDToken))
+						if (AlreadyProcessedTypes.Any(x => x.Types.Item2.MDToken == obfType.MDToken))
 							return ProcessResult.AlreadyProcessed;
 
 						var cleanTypeDef = cleanType.ScopeType.ResolveTypeDef();
@@ -83,7 +82,7 @@ namespace NameMapper
 
 						ProcessType(cleanTypeDef.BaseType, obfTypeDef.BaseType);
 
-						AlreadyProcessedTypes.TryAdd(new TypePair(cleanTypeDef, obfTypeDef), false);
+						AlreadyProcessedTypes.Add(new TypePairInfo(new TypePair(cleanTypeDef, obfTypeDef), false));
 					}
 					else return ProcessResult.FrameworkType;
 				}
@@ -218,6 +217,18 @@ namespace NameMapper
 
 			if (ret != obfName)
 				ParentInstance.Message($"W | Found duplicate (errored) name pair: \"{cleanName}\" => given \"{obfName}\"  but got  \"{ret}\".");
+		}
+	}
+
+	public class TypePairInfo
+	{
+		public TypePair Types;
+		public bool FullyProcessed;
+
+		public TypePairInfo(TypePair types, bool fullyProcessed)
+		{
+			Types = types;
+			FullyProcessed = fullyProcessed;
 		}
 	}
 
