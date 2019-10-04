@@ -107,15 +107,23 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>IF /I NOT "$(ConfigurationName)"=="LiveDebug" EXIT /B 0
-ECHO Configuration is LiveDebug! Removing all stuff from C:\osu!\osu!patch
+    <PreBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO cleanup
+IF /I "$(ConfigurationName)"=="LiveDebug" GOTO cleanup
+EXIT /B 0
+
+:cleanup
+ECHO Configuration is $(ConfigurationName)! Removing all stuff from C:\osu!\osu!patch
 DEL /F "C:\osu!\osu!patch\*.dll"
 DEL /F "C:\osu!\osu!patch\osu!patch.exe"
 DEL /Q "C:\osu!\osu!patch\plugins\"
 EXIT /B 0</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>IF /I NOT "$(ConfigurationName)"=="LiveDebug" EXIT /B 0
+    <PostBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO move
+IF /I "$(ConfigurationName)"=="LiveDebug" GOTO move
+EXIT /B 0
+
+:move
 echo Configuration is LiveDebug! Copying all stuff to C:\osu!\osu!patch
 CD "C:\osu!\"
 IF NOT EXIST "osu!patch\" mkdir "osu!patch\"

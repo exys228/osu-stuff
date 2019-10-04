@@ -49,7 +49,7 @@ namespace osu_patch
 					OpCodes.Call
 				});
 
-				return new PatchResult(patch, PatchStatus.Success);
+				return patch.Result(PatchStatus.Success);
 			}),
 			new Patch("Bancho MD5 hash of osu!.exe fix", true, (patch, exp) =>
 			{
@@ -74,7 +74,7 @@ namespace osu_patch
 				// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
 				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, CMain.ObfOsuHash));
 
-				return new PatchResult(patch, PatchStatus.Success);
+				return patch.Result(PatchStatus.Success);
 			}),
 			new Patch("\"Patch on update\" patch", true, (patch, exp) =>
 			{
@@ -170,7 +170,7 @@ namespace osu_patch
 				FieldDef fldHash = exp.Module.Find("osu_common.Updater.UpdaterFileInfo", false)?.FindField("file_hash");
 
 				if (fldFilename == null || fldHash == null)
-					return new PatchResult(patch, PatchStatus.Failure, "Unable to locate UpdaterFileInfo.filename or UpdaterFileInfo.file_hash");
+					return patch.Result(PatchStatus.Failure, "Unable to locate UpdaterFileInfo.filename or UpdaterFileInfo.file_hash");
 
 				var op_Inequality = exp.Module.CreateMethodRef(true, typeof(String), "op_Inequality", typeof(bool), typeof(string), typeof(string));
 
@@ -193,7 +193,7 @@ namespace osu_patch
 
 				#endregion
 
-				return new PatchResult(patch, PatchStatus.Success);
+				return patch.Result(PatchStatus.Success);
 			})
 
 			#region Disabled

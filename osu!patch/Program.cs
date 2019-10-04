@@ -1,4 +1,6 @@
-﻿using de4dot.code;
+﻿#define DONT_USE_CACHED_DICT
+
+using de4dot.code;
 using de4dot.code.AssemblyClient;
 using de4dot.code.deobfuscators;
 using dnlib.DotNet;
@@ -51,6 +53,8 @@ namespace osu_patch
 				Exit("F | Unhandled exception! This shouldn't occur. Details:\n" + eventArgs.ExceptionObject); // exit because ReadKey is needed if configuration is debug
 				Environment.Exit(1);
 			};
+
+
 
 #if LIVE_DEBUG
 			Environment.CurrentDirectory = @"C:\osu!";
@@ -339,15 +343,15 @@ namespace osu_patch
 		private static INameProvider InitializeNameProvider()
 		{
 			var dictFile = Path.Combine(CacheFolderLocation, $"{ObfOsuHash}.dic");
-			
-//#if !DEBUG
+
+#if !DEBUG || !DONT_USE_CACHED_DICT
 			if (File.Exists(dictFile))
 			{
 				Message("I | Found cached name dictionary file for this assembly! Loading names...");
 				return SimpleNameProvider.Initialize(File.ReadAllBytes(dictFile));
 			}
 			else
-//#endif
+#endif
 			{
 				Message("I | No cached name dictionary found! Initializing DefaultNameProvider (NameMapper)...");
 
@@ -413,7 +417,7 @@ namespace osu_patch
 
 
 
-	public static class OsuPatchExtensions
+	public static class OsuPatchExtensions // bunch of helper methods and shortcuts
 	{
 		/// <summary>
 		/// o no so old much deprecated use ModuleExplorer->TypeExplorer->MethodExplorer->MethodEditor when possible

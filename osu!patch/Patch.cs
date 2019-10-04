@@ -23,7 +23,7 @@ namespace osu_patch
 		public PatchResult Execute(ModuleExplorer exp)
 		{
 			if (!Enabled)
-				return new PatchResult(this, PatchStatus.Disabled);
+				return Result(PatchStatus.Disabled);
 
 			try
 			{
@@ -31,9 +31,12 @@ namespace osu_patch
 			}
 			catch (Exception ex)
 			{
-				return new PatchResult(this, PatchStatus.Exception, ex: ex);
+				return Result(PatchStatus.Exception, ex: ex);
 			}
 		}
+
+		public PatchResult Result(PatchStatus status, string message = "", Exception ex = null) =>
+			new PatchResult(this, status, message, ex);
 	}
 
 	public delegate PatchResult PatchFunction(Patch parent, ModuleExplorer exp);
