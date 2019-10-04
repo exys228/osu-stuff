@@ -112,7 +112,7 @@ namespace OsuPatchPlugin.Misc
 			}),
 			new Patch("Switch servers to asuki.me", false, (patch, exp) =>
 			{
-				var method = exp["osu.Online.BanchoClient"].FindRaw(".cctor");
+				var method = exp["osu.Online.BanchoClient"].FindMethodRaw(".cctor");
 
 				var declStart = method.Editor.Locate(new[]
 				{

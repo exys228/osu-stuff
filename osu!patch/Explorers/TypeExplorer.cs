@@ -13,7 +13,7 @@ namespace osu_patch.Explorers
 
 		private INameProvider NameProvider { get; }
 
-		public MethodExplorer this[string name] => Find(name);
+		public MethodExplorer this[string name] => FindMethod(name);
 
 		public TypeExplorer(ModuleExplorer parent, TypeDef type, INameProvider nameProvider = null)
 		{
@@ -22,13 +22,33 @@ namespace osu_patch.Explorers
 			NameProvider = nameProvider ?? MapperNameProvider.Instance;
 		}
 
-		public MethodExplorer Find(string name)
+		public MethodExplorer FindMethod(string name)
 		{
-			string result = NameProvider.GetName(name);
-			return new MethodExplorer(this, Type.FindMethod(result));
+			var result = Type.FindMethod(NameProvider.GetName(name));
+
+			if (result is null)
+				throw CreateUnableToFindException("method");
+
+			return new MethodExplorer(this, result);
 		}
 
-		public MethodExplorer FindRaw(string name) =>
-			new MethodExplorer(this, Type.FindMethod(name));
+		public MethodExplorer FindMethodRaw(string name) =>
+			new MethodExplorer(this, Type.FindMethod(name) ?? throw CreateUnableToFindException("method"));
+
+		public FieldDef FindField(string name)
+		{
+			var result = Type.FindField(NameProvider.GetName(name));
+
+			if (result is null)
+				throw CreateUnableToFindException("field");
+
+			return result;
+		}
+
+		public FieldDef FindFieldRaw(string name) =>
+			Type.FindField(name) ?? throw CreateUnableToFindException("field");
+
+		private static NameProviderException CreateUnableToFindException(string whatExactly) => // field, method etc.
+			new NameProviderException($"Unable to find {whatExactly} specified!");
 	}
 }
