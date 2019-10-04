@@ -76,6 +76,40 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
+			new Patch("No \"mouse buttons are disabled\" message", true, (patch, exp) =>
+			{
+				/*
+				 *	if (!warningMouseButtonsDisabled && ConfigManager.sMouseDisableButtons)
+				 *	{
+				 *		warningMouseButtonsDisabled = true;
+				 *		NotificationManager.ShowMessage(string.Format(LocalisationManager.GetString(OsuString.InputManager_MouseButtonsDisabledWarning), BindingManager.For(Bindings.DisableMouseButtons)), Color.Beige, 10000);
+				 *	}
+				 *
+				 */
+
+				exp["osu.GameModes.Play.Player"]["Initialize"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldsfld,
+					OpCodes.Brtrue_S,
+					OpCodes.Ldsfld,
+					OpCodes.Call,
+					OpCodes.Brfalse_S,
+					OpCodes.Ldc_I4_1,
+					OpCodes.Stsfld,
+					OpCodes.Ldc_I4,
+					OpCodes.Call,
+					OpCodes.Ldc_I4_S,
+					OpCodes.Call,
+					OpCodes.Box,
+					OpCodes.Call,
+					OpCodes.Call,
+					OpCodes.Ldc_I4,
+					OpCodes.Ldnull,
+					OpCodes.Call
+				});
+
+				return new PatchResult(patch, PatchStatus.Success);
+			}),
 			new Patch("Switch servers to asuki.me", false, (patch, exp) =>
 			{
 				var method = exp["osu.Online.BanchoClient"].FindRaw(".cctor");

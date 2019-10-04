@@ -40,7 +40,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'LiveDebug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\LiveDebug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LIVE_DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <LangVersion>7.3</LangVersion>
@@ -67,12 +67,13 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>IF "$(ConfigurationName)"=="LiveDebug" GOTO livedeb
+    <PostBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO liveCd
+IF /I "$(ConfigurationName)"=="LiveDebug" GOTO liveCd
 CD "$(SolutionDir)osu!patch\bin\$(ConfigurationName)"
 GOTO cpy
 
-:livedeb
-ECHO Configuration is LiveDebug! Changing directory to C:\osu!\osu!patch
+:liveCd
+ECHO Configuration is $(ConfigurationName)! Changing directory to C:\osu!\osu!patch
 CD "C:\osu!\osu!patch"
 
 :cpy
