@@ -1,4 +1,4 @@
-﻿#define DONT_USE_CACHED_DICT
+﻿//#define DONT_USE_CACHED_DICT
 
 using de4dot.code;
 using de4dot.code.AssemblyClient;

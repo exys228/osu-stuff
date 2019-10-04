@@ -4,16 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{DC838681-50CD-41A6-B972-97606A2AB89D}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>OsuVersionDownloader</RootNamespace>
-    <AssemblyName>OsuVersionDownloader</AssemblyName>
+    <ProjectGuid>{1CA60738-A64B-4C64-BC0A-1B934894D07D}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>OsuPatchPlugin.NoFlags</RootNamespace>
+    <AssemblyName>OsuPatchPlugin.NoFlags</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -23,31 +23,48 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>none</DebugType>
+    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'LiveDebug|AnyCPU'">
+    <OutputPath>bin\LiveDebug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
+  </PropertyGroup>
   <ItemGroup>
-    <None Include="App.config" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="MD5Helper.cs" />
-    <Compile Include="Program.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\ainu-project\osu!win\bin\x86\PublicNoUpdate\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="dnlib">
+      <HintPath>..\..\osu.DeobfuscateTools\NameMapper\dnlib.dll</HintPath>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="NoFlags.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\osu!patch\osu!patch.csproj">
+      <Project>{5f7f349b-a3d0-4124-9bf3-2e030a43bb3b}</Project>
+      <Name>osu!patch</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>IF "$(ConfigurationName)"=="LiveDebug" GOTO livedeb
+CD "$(SolutionDir)osu!patch\bin\$(ConfigurationName)"
+GOTO cpy
+
+:livedeb
+ECHO Configuration is LiveDebug! Changing directory to C:\osu!\osu!patch
+CD "C:\osu!\osu!patch"
+
+:cpy
+ECHO Copying $(ProjectName) plugin to plugins\
+IF NOT EXIST "plugins\" MKDIR "plugins"
+COPY /Y "$(TargetPath)" "plugins\"
+EXIT /B 0</PostBuildEvent>
+  </PropertyGroup>
 </Project>

@@ -40,6 +40,62 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
+			new Patch("Saving failed replays", true, (patch, exp) => {
+				var editor = exp["osu.GameModes.Play.Player"]["onKeyPressed"].Editor;
+
+				var loc = editor.Locate(new[]
+				{
+					OpCodes.Ldsfld,    // 0 
+					OpCodes.Brfalse,   // 1
+					OpCodes.Call,	   // 2
+					OpCodes.Brtrue,	   // 3
+					OpCodes.Ldsfld,    // 4 
+					OpCodes.Brfalse_S, // 5
+					OpCodes.Ldarg_2,   // 6
+					OpCodes.Ldc_I4_S,  // 7
+					OpCodes.Bne_Un_S,  // 8
+					OpCodes.Ldsfld,	   // 9
+					OpCodes.Brfalse_S, // 10
+					OpCodes.Ldarg_0,   // 11
+					OpCodes.Call,	   // 12
+					OpCodes.Ldsfld,	   // 13
+					OpCodes.Stsfld,	   // 14
+					OpCodes.Ldc_I4_1,  // 15
+					OpCodes.Call,	   // 16
+					OpCodes.Ldc_I4_1,  // 17
+					OpCodes.Stsfld,	   // 18
+					OpCodes.Ldc_I4_2,  // 19
+					OpCodes.Ldc_I4_1,  // 20
+					OpCodes.Ldc_I4_0,  // 21
+					OpCodes.Call,	   // 22
+					OpCodes.Ldc_I4_1,  // 23
+					OpCodes.Ret		   // 24 
+				});
+
+				var ExportReplay = exp["osu.GameplayElements.Scoring.ScoreManager"]["ExportReplay"].Method;
+				var currentScore = exp["osu.GameModes.Play.Player"].FindField("currentScore");
+				editor.NopAt(loc + 11);
+				editor.NopAt(loc + 12);
+				editor.InsertAt(loc + 15, new[] {
+					Instruction.Create(OpCodes.Ldsfld, currentScore),
+					Instruction.Create(OpCodes.Ldc_I4_1),
+					Instruction.Create(OpCodes.Call, ExportReplay),
+					Instruction.Create(OpCodes.Pop)
+				});
+
+				/*
+			 if (Player.Failed && k == Keys.F1 && Player.currentScore != null)
+				{
+					this.HandleScoreSubmission();
+					InputManager.ReplayScore = Player.currentScore;
+					ScoreManager.ExportReplay(Player.currentScore, true); <<< inserts this
+					InputManager.set_ReplayMode(true);
+					InputManager.ReplayToEnd = true;
+					GameBase.ChangeModeInstant(OsuModes.Play, true, 0);
+					return true;
+				} */
+				return new PatchResult(patch, PatchStatus.Success);
+			}),
 			new Patch("No minimum delay before pausing again", true, (patch, exp) =>
 			{
 				// first 27 instructions
