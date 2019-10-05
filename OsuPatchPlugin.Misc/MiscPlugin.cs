@@ -1,19 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using dnlib.DotNet;
+﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using osu_patch;
 using osu_patch.Custom;
-using osu_patch.Explorers;
 using osu_patch.Misc;
+using System;
+using System.Collections.Generic;
 
 namespace OsuPatchPlugin.Misc
 {
 	public class MiscPlugin : IOsuPatchPlugin
 	{
-		private const string OSU_BASE_URL = "osu.ppy.sh";
-
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
 			new Patch("Local offset change while paused", true, (patch, exp) =>
@@ -40,10 +36,12 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Saving failed replays", true, (patch, exp) => {
-				var editor = exp["osu.GameModes.Play.Player"]["onKeyPressed"].Editor;
+			new Patch("Saving failed replays", true, (patch, exp) =>
+			{
+				var Player = exp["osu.GameModes.Play.Player"];
+				var onKeyPressed = Player["onKeyPressed"];
 
-				var loc = editor.Locate(new[]
+				var loc = onKeyPressed.Editor.Locate(new[]
 				{
 					OpCodes.Ldsfld,    // 0 
 					OpCodes.Brfalse,   // 1
@@ -56,8 +54,8 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Bne_Un_S,  // 8
 					OpCodes.Ldsfld,	   // 9
 					OpCodes.Brfalse_S, // 10
-					OpCodes.Ldarg_0,   // 11
-					OpCodes.Call,	   // 12
+					OpCodes.Ldarg_0,   // 11 // NOP
+					OpCodes.Call,	   // 12 // NOP // this.HandleScoreSubmission();
 					OpCodes.Ldsfld,	   // 13
 					OpCodes.Stsfld,	   // 14
 					OpCodes.Ldc_I4_1,  // 15
@@ -70,13 +68,15 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Call,	   // 22
 					OpCodes.Ldc_I4_1,  // 23
 					OpCodes.Ret		   // 24 
-				});
+				}, false);
 
 				var ExportReplay = exp["osu.GameplayElements.Scoring.ScoreManager"]["ExportReplay"].Method;
-				var currentScore = exp["osu.GameModes.Play.Player"].FindField("currentScore");
-				editor.NopAt(loc + 11);
-				editor.NopAt(loc + 12);
-				editor.InsertAt(loc + 15, new[] {
+				var currentScore = Player.FindField("currentScore");
+
+				onKeyPressed.Editor.NopAt(loc + 11, 2);
+
+				onKeyPressed.Editor.InsertAt(loc + 15, new[]
+				{
 					Instruction.Create(OpCodes.Ldsfld, currentScore),
 					Instruction.Create(OpCodes.Ldc_I4_1),
 					Instruction.Create(OpCodes.Call, ExportReplay),
@@ -84,16 +84,17 @@ namespace OsuPatchPlugin.Misc
 				});
 
 				/*
-			 if (Player.Failed && k == Keys.F1 && Player.currentScore != null)
+				if (Player.Failed && k == Keys.F1 && Player.currentScore != null)
 				{
 					this.HandleScoreSubmission();
 					InputManager.ReplayScore = Player.currentScore;
-					ScoreManager.ExportReplay(Player.currentScore, true); <<< inserts this
+					ScoreManager.ExportReplay(Player.currentScore, true); <<< Inserts this
 					InputManager.set_ReplayMode(true);
 					InputManager.ReplayToEnd = true;
 					GameBase.ChangeModeInstant(OsuModes.Play, true, 0);
 					return true;
-				} */
+				} 
+				*/
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
 			new Patch("No minimum delay before pausing again", true, (patch, exp) =>
@@ -166,6 +167,82 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
+			new Patch("Don't send frames to spectators (NoSpec)", true, (patch, exp) =>
+			{
+				/*
+				 *	if (!warningMouseButtonsDisabled && ConfigManager.sMouseDisableButtons)
+				 *	{
+				 *		warningMouseButtonsDisabled = true;
+				 *		NotificationManager.ShowMessage(string.Format(LocalisationManager.GetString(OsuString.InputManager_MouseButtonsDisabledWarning), BindingManager.For(Bindings.DisableMouseButtons)), Color.Beige, 10000);
+				 *	}
+				 *
+				 */
+
+				exp["osu.Online.StreamingManager"]["PurgeFrames"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldc_I4_S,
+					OpCodes.Ldsfld,
+					OpCodes.Ldarg_0,
+					OpCodes.Ldloc_3,
+					OpCodes.Ldarg_1,
+					OpCodes.Stloc_S,
+					OpCodes.Ldloca_S,
+					OpCodes.Call,
+					OpCodes.Brtrue_S,
+					OpCodes.Ldsfld,
+					OpCodes.Br_S,
+					OpCodes.Ldloca_S,
+					OpCodes.Call,
+					OpCodes.Ldsfld,
+					OpCodes.Dup,
+					OpCodes.Ldc_I4_1,
+					OpCodes.Add,
+					OpCodes.Stsfld,
+					OpCodes.Newobj,
+					OpCodes.Call
+				});
+
+				return new PatchResult(patch, PatchStatus.Success);
+			}),
+			new Patch("Don't send anti-cheat flags to Bancho", true, (patch, exp) =>
+			{
+				// Startup flags // Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
+				exp["osu.Helpers.Scrobbler"]["sendCurrentTrack"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldsfld,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Bgt_S
+				});
+
+				/* Submit flags // Remove this \/ \/ \/
+				 * for (int i = 0; i < (int)Player.flag; i++)
+				 * {
+				 *      text += " ";
+				 * }
+				 */
+				exp["osu.GameplayElements.Scoring.Score"]["get_onlineFormatted"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldloc_0,
+					OpCodes.Nop,
+					OpCodes.Ldstr,
+					OpCodes.Call,
+					OpCodes.Stloc_0,
+					OpCodes.Ldloc_1,
+					OpCodes.Ldc_I4_1,
+					OpCodes.Add,
+					OpCodes.Stloc_1,
+					OpCodes.Ldloc_1,
+					OpCodes.Ldsfld,
+					OpCodes.Blt_S
+				});
+
+				return new PatchResult(patch, PatchStatus.Success);;
+			})
+					
+			#region Disabled
+			/*
+			private const string OSU_BASE_URL = "osu.ppy.sh";
+
 			new Patch("Switch servers to asuki.me", false, (patch, exp) =>
 			{
 				var method = exp["osu.Online.BanchoClient"].FindMethodRaw(".cctor");
@@ -247,8 +324,48 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			})
+			*/
+			#endregion
 		};
 
+		private class IlStringBuilder
+		{
+			public List<Instruction> Instructions = new List<Instruction>();
+
+			private byte _stackCounter;
+
+			private static MemberRef _stringConcat;
+
+			public IlStringBuilder(ModuleDef module)
+			{
+				var mod = _stringConcat?.Module;
+
+				if (mod != null && mod == module)
+					return;
+
+				_stringConcat = module.CreateMethodRef(true, typeof(String), "Concat", typeof(string), typeof(string), typeof(string));
+			}
+
+			public void Add(Instruction ins)
+			{
+				Instructions.Add(ins);
+				_stackCounter++;
+
+				if (_stackCounter >= 2)
+				{
+					Instructions.Add(Instruction.Create(OpCodes.Call, _stringConcat));
+					_stackCounter = 1;
+				}
+			}
+
+			public void Add(string str) =>
+				Add(Instruction.Create(OpCodes.Ldstr, str));
+		}
+
+		public void Load(ModuleDef originalObfOsuModule) { }
+
+		#region Disabled
+		/*
 		private static IList<Instruction> AsukiPatch_CreateServersArrayInitializer(ModuleExplorer exp, IList<string> addrList)
 		{
 			var ret = new List<Instruction>();
@@ -294,41 +411,7 @@ namespace OsuPatchPlugin.Misc
 
 			return new List<Instruction> { Instruction.Create(OpCodes.Ldstr, str) };
 		}
-
-		private class IlStringBuilder
-		{
-			public List<Instruction> Instructions = new List<Instruction>();
-
-			private byte _stackCounter;
-
-			private static MemberRef _stringConcat;
-
-			public IlStringBuilder(ModuleDef module)
-			{
-				var mod = _stringConcat?.Module;
-
-				if (mod != null && mod == module)
-					return;
-
-				_stringConcat = module.CreateMethodRef(true, typeof(String), "Concat", typeof(string), typeof(string), typeof(string));
-			}
-
-			public void Add(Instruction ins)
-			{
-				Instructions.Add(ins);
-				_stackCounter++;
-
-				if (_stackCounter >= 2)
-				{
-					Instructions.Add(Instruction.Create(OpCodes.Call, _stringConcat));
-					_stackCounter = 1;
-				}
-			}
-
-			public void Add(string str) =>
-				Add(Instruction.Create(OpCodes.Ldstr, str));
-		}
-
-		public void Load(ModuleDef originalObfOsuModule) { }
+		 */
+		#endregion
 	}
 }
