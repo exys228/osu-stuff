@@ -93,7 +93,7 @@ namespace osu_patch.Editors
 
 				while (i + occurence < Count)
 				{
-					if (Instrs[i + occurence].OpCode != signature[occurence] && signature[occurence] != null)
+					if (Instrs[i + occurence].OpCode != signature[occurence] && signature[occurence] != null) // null is literally any opcode
 						break;
 
 					if (++occurence >= signature.Count)
