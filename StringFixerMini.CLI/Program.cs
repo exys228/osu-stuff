@@ -24,7 +24,7 @@ namespace StringFixerMini.CLI
 															 MetadataFlags.PreserveExtraSignatureData |
 															 MetadataFlags.KeepOldMaxStack;
 
-		static int Main(string[] args)
+		public static int Main(string[] args)
 		{
 			if (args.Length < 1)
 				return Message("StringFixerMini.CLI\n" +
