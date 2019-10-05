@@ -7,7 +7,7 @@ using dnlib.DotNet;
 
 namespace NameMapper
 {
-	internal static class Extensions
+	static class Extensions
 	{
 		/// <summary>
 		/// Group by opcodes and exclude groups that have more than one method

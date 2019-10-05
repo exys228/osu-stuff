@@ -1,4 +1,4 @@
-﻿#define DONT_USE_CACHED_DICT
+﻿// #define DONT_USE_CACHED_DICT
 
 using de4dot.code;
 using de4dot.code.AssemblyClient;
@@ -20,7 +20,7 @@ using System.Reflection;
 
 namespace osu_patch
 {
-	static class CMain
+	static class Program
 	{
 		private static ModuleDefMD _obfOsuModule;
 		private static ModuleDefMD _cleanOsuModule;
@@ -46,7 +46,7 @@ namespace osu_patch
 															 MetadataFlags.PreserveExtraSignatureData |
 															 MetadataFlags.KeepOldMaxStack;
 
-		static CMain()
+		static Program()
 		{
 			AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
 			{
@@ -297,6 +297,8 @@ namespace osu_patch
 
 			if (Directory.Exists(PluginsFolderLocation))
 			{
+				File.WriteAllText(@"C:\osu!\osu!patch\plugins\asd.dll", "");
+
 				foreach (var file in Directory.GetFiles(PluginsFolderLocation, "*.dll"))
 				{
 					var fileName = Path.GetFileName(file);
@@ -329,11 +331,7 @@ namespace osu_patch
 							_loadedPlugins.Add(new PluginInfo(fileName, type.Name, plugin));
 						}
 					}
-					catch (BadImageFormatException ex)
-					{
-						if (ex.HResult == -2146234344)
-							Message($"E | {fileName} is not a valid .NET assembly file!");
-					}
+					catch (BadImageFormatException) { Message($"E | {fileName} is not a valid .NET assembly file!"); }
 					catch (Exception ex) { Message($"E | Unable to load {fileName}! Details:\n" + ex); }
 				}
 			}
@@ -375,7 +373,7 @@ namespace osu_patch
 
 			var options = new ObfuscatedFile.Options
 			{
-				Filename = _obfOsuPath, // will this work or do i need filename ONLY? yes it will ok
+				Filename = _obfOsuPath,
 				ControlFlowDeobfuscation = true,
 				KeepObfuscatorTypes = true,
 				RenamerFlags = 0,
@@ -417,10 +415,10 @@ namespace osu_patch
 
 
 
-	public static class OsuPatchExtensions // bunch of helper methods and shortcuts
+	public static class OsuPatchExtensions // bunch of helper methods and shortcuts // wanted to make it internal but may be useful in plugins? not sure
 	{
 		/// <summary>
-		/// o no so old much deprecated use ModuleExplorer->TypeExplorer->MethodExplorer->MethodEditor when possible
+		/// Not for editing osu's method bodies, use ModuleExplorer->TypeExplorer->MethodExplorer->MethodEditor instead.
 		/// </summary>
 		public static void Insert(this IList<Instruction> originalArray, int index, Instruction[] instructions)
 		{
@@ -432,8 +430,8 @@ namespace osu_patch
 
 			Array.Reverse(instructions);
 
-			for (int i = 0; i < instructions.Length; i++)
-				originalArray.Insert(index, instructions[i]);
+			foreach (var ins in instructions)
+				originalArray.Insert(index, ins);
 		}
 
 		public static MemberRef CreateMethodRef(this ModuleDef module, bool isStatic, Type type, string methodName, Type returnType, params Type[] argsType)

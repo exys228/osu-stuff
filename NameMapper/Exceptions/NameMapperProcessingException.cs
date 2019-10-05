@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace NameMapper.Exceptions
 {
-	public class NameMapperProcessingException : Exception
+	class NameMapperProcessingException : Exception
 	{
 		public NameMapperProcessingException() { }
 

@@ -13,7 +13,7 @@ namespace NameMapper
 	/// <summary>
 	/// The deal of this class is that it only processes NAMES of things, not bodies like in NameMapper.RecurseFromMethod etc.
 	/// </summary>
-	public class NamableProcessor
+	class NamableProcessor
 	{
 		/// <summary>
 		/// Bool - is fully processed or not. Used after recurse from Main.
@@ -220,7 +220,7 @@ namespace NameMapper
 		}
 	}
 
-	public class TypePairInfo
+	class TypePairInfo
 	{
 		public TypePair Types;
 		public bool FullyProcessed;
@@ -232,7 +232,7 @@ namespace NameMapper
 		}
 	}
 
-	public enum ProcessResult
+	enum ProcessResult
 	{
 		None,
 		Ok,

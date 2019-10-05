@@ -77,7 +77,6 @@
     <Compile Include="Naming\INameProvider.cs" />
     <Compile Include="Editors\MethodEditor.cs" />
     <Compile Include="Naming\SimpleNameProvider.cs" />
-    <Compile Include="OsuFindCollection.cs" />
     <Compile Include="MD5Helper.cs" />
     <Compile Include="Patch.cs" />
     <Compile Include="Naming\MapperNameProvider.cs" />

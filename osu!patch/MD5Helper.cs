@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 
 namespace osu_patch
 {
-	class MD5Helper
+	static class MD5Helper
 	{
 		public static string Compute(string filename)
 		{

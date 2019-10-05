@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace osu_patch.Exceptions
 {
-	public class NameProviderException : Exception
+	class NameProviderException : Exception
 	{
 		public NameProviderException() { }
 

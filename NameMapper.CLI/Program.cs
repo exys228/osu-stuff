@@ -11,7 +11,7 @@ using StringFixerMini.CLI;
 
 namespace NameMapper.CLI
 {
-	class Program
+	static class Program
 	{
 		private static ModuleDefMD _cleanModule;
 		private static ModuleDefMD _obfModule;
@@ -25,7 +25,7 @@ namespace NameMapper.CLI
 															 MetadataFlags.PreserveExtraSignatureData |
 															 MetadataFlags.KeepOldMaxStack;
 
-		static int Main(string[] args)
+		public static int Main(string[] args)
 		{
 			if (args.Length < 2)
 				return Message("NameMapper.CLI - map names from assembly with deobfuscated names to assembly with obfuscated names\n" +

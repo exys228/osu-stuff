@@ -351,6 +351,8 @@ namespace OsuPatchPlugin.Misc
 			#endregion
 		};
 
+		public void Load(ModuleDef originalObfOsuModule) { }
+
 		private class IlStringBuilder
 		{
 			public List<Instruction> Instructions = new List<Instruction>();
@@ -384,8 +386,6 @@ namespace OsuPatchPlugin.Misc
 			public void Add(string str) =>
 				Add(Instruction.Create(OpCodes.Ldstr, str));
 		}
-
-		public void Load(ModuleDef originalObfOsuModule) { }
 
 		#region Disabled
 		/*

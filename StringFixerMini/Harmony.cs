@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using Harmony;
 
 namespace StringFixerMini
-{
-	public static class Harmony
+{ 
+	static class Harmony
 	{
 		public static void Patch()
 		{

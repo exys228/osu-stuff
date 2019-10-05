@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace StringFixerMini
 {
-	public class StringFixerException : Exception
+	class StringFixerException : Exception
 	{
 		public StringFixerException() { }
 

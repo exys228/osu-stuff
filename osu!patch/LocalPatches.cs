@@ -17,9 +17,9 @@ using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
 
 namespace osu_patch
 {
-	internal static class LocalPatches
+	static class LocalPatches
 	{
-		internal static readonly Patch[] PatchList = // i thought that separating necessary patches from other ones would be better, so patches down below are 'vital' for running patched osu! without any problems
+		public static readonly Patch[] PatchList = // i thought that separating necessary patches from other ones would be better, so patches down below are 'vital' for running patched osu! without any problems
 		{
 			new Patch("\"Unsigned executable\" fix", true, (patch, exp) =>
 			{
@@ -70,7 +70,7 @@ namespace osu_patch
 				method.Editor.Nop(2);
 
 				// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
-				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, CMain.ObfOsuHash));
+				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, Program.ObfOsuHash));
 
 				return patch.Result(PatchStatus.Success);
 			}),
@@ -181,7 +181,7 @@ namespace osu_patch
 					Instruction.Create(OpCodes.Brtrue, doUpdate[doUpdate.Editor.Position]),
 					Instruction.Create(OpCodes.Ldloc_0),
 					Instruction.Create(OpCodes.Ldfld, fldHash),
-					Instruction.Create(OpCodes.Ldstr, CMain.ObfOsuHash),
+					Instruction.Create(OpCodes.Ldstr, Program.ObfOsuHash),
 					Instruction.Create(OpCodes.Call, op_Inequality),
 					Instruction.Create(OpCodes.Brfalse, doUpdate[brfalseOcc])
 				});
@@ -208,7 +208,7 @@ namespace osu_patch
 			new Patch("NoFail submit options", false, () =>
 			{
 				
-				OsuFindCollection res = CMain.FindTypeMethod("osu.GameModes.Play.Player", "Dispose");
+				OsuFindCollection res = Program.FindTypeMethod("osu.GameModes.Play.Player", "Dispose");
 
 				if(!res.Success)
 					return false;
@@ -223,7 +223,7 @@ namespace osu_patch
 					return false;
 
 				//Theoretically failed
-				FieldDefUser TheoreticallyFailed = new FieldDefUser("TheoreticallyFailed", new FieldSig(CMain.OsuModule.CorLibTypes.Boolean), FieldAttributes.Public | FieldAttributes.Static);
+				FieldDefUser TheoreticallyFailed = new FieldDefUser("TheoreticallyFailed", new FieldSig(Program.OsuModule.CorLibTypes.Boolean), FieldAttributes.Public | FieldAttributes.Static);
 				Player.Fields.Add(TheoreticallyFailed);
 
 
@@ -235,7 +235,7 @@ namespace osu_patch
 				// --
 
 				// Submit mode // 0 = did not yet choose; 1 - withOUT nofail; 2 - don't submit; 3 - WITH nofail
-				FieldDefUser SubmitModeDef = new FieldDefUser("SubmitMode", new FieldSig(CMain.OsuModule.CorLibTypes.SByte), FieldAttributes.Public | FieldAttributes.Static);
+				FieldDefUser SubmitModeDef = new FieldDefUser("SubmitMode", new FieldSig(Program.OsuModule.CorLibTypes.SByte), FieldAttributes.Public | FieldAttributes.Static);
 				Player.Fields.Add(SubmitModeDef);
 
 				cctor.Body.Instructions.Insert(0, new Instruction[]
@@ -288,7 +288,7 @@ namespace osu_patch
 				}) + 1; // !
 
 				FieldDef Ruleset = Player.FindFieldObf("Ruleset");
-				FieldDef HpBar = CMain.OsuModule.FindObf("osu.GameModes.Play.Rulesets.Ruleset")?.FindFieldObf("HpBar");
+				FieldDef HpBar = Program.OsuModule.FindObf("osu.GameModes.Play.Rulesets.Ruleset")?.FindFieldObf("HpBar");
 				MethodDef GetCurrentHp = HpBar.GetTypeDef()?.FindMethodObf("get_CurrentHp");
 
 				if(Ruleset == null || HpBar == null || GetCurrentHp == null)
@@ -315,7 +315,7 @@ namespace osu_patch
 				#region HandleScoreSubmission dialog
 				var currentScore = Player?.FindFieldObf("currentScore"); // Player.currentScore
 				var EnabledMods = currentScore?.GetTypeDef()?.FindFieldObf("EnabledMods"); // Score.EnabledMods
-				var ModStatus = CMain.OsuModule.FindObf("osu.GameplayElements.Scoring.ModManager")?.FindFieldObf("ModStatus");
+				var ModStatus = Program.OsuModule.FindObf("osu.GameplayElements.Scoring.ModManager")?.FindFieldObf("ModStatus");
 
 				var SubmitWithoutNoFail = NoFailPatch_CreateSubmitOption(SubmitModeDef, SubmitMode.WithoutNoFail);
 				var SubmitWithNoFail = NoFailPatch_CreateSubmitOption(SubmitModeDef, SubmitMode.WithNoFail);
@@ -523,8 +523,8 @@ namespace osu_patch
 			var ProcessGetExitCode = obfOsuModule.CreateMethodRef(false, typeof(Process), "get_ExitCode", typeof(int));
 			var FileCreate = obfOsuModule.CreateMethodRef(true, typeof(File), "Create", typeof(FileStream), typeof(string));
 			var StreamClose = obfOsuModule.CreateMethodRef(false, typeof(Stream), "Close", typeof(void));
-			// var FileDelete = CMain.ObfOsuModule.CreateMethodRef(true, typeof(File), "Delete", typeof(void), typeof(string));
-			// var FileMove = CMain.ObfOsuModule.CreateMethodRef(true, typeof(File), "Move", typeof(void), typeof(string), typeof(string));
+			// var FileDelete = Program.ObfOsuModule.CreateMethodRef(true, typeof(File), "Delete", typeof(void), typeof(string));
+			// var FileMove = Program.ObfOsuModule.CreateMethodRef(true, typeof(File), "Move", typeof(void), typeof(string), typeof(string));
 
 			var SafelyMove = exp["osu_common.Updater.CommonUpdater"]["SafelyMove"].Method;
 
@@ -594,27 +594,27 @@ namespace osu_patch
 			MethodImplAttributes implFlags = MethodImplAttributes.IL | MethodImplAttributes.Managed;
 			MethodAttributes flags = MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot;
 
-			MethodDefUser method = new MethodDefUser("ShowNoFailDialog", MethodSig.CreateStatic(CMain.OsuModule.CorLibTypes.Void), implFlags, flags);
+			MethodDefUser method = new MethodDefUser("ShowNoFailDialog", MethodSig.CreateStatic(Program.OsuModule.CorLibTypes.Void), implFlags, flags);
 
 			CilBody body = new CilBody();
 			method.Body = body;
 
-			var GameBase_ShowDialog = CMain.OsuModule.FindObf("osu.GameBase")?.FindMethodObf("ShowDialog");
+			var GameBase_ShowDialog = Program.OsuModule.FindObf("osu.GameBase")?.FindMethodObf("ShowDialog");
 
-			var Player = CMain.OsuModule.FindObf("osu.GameModes.Play.Player");
+			var Player = Program.OsuModule.FindObf("osu.GameModes.Play.Player");
 			var Player_currentScore = Player?.FindFieldObf("currentScore");
 			var Score = Player_currentScore?.GetTypeDef();
 			var Score_EnabledMods = Score?.FindFieldObf("EnabledMods");
 			var Score_submit = Score?.FindMethodObf("submit"); // Submit != submit BE CAREFUL
 
-			var pDialog = CMain.OsuModule.FindObf("osu.Graphics.UserInterface.pDialog");
+			var pDialog = Program.OsuModule.FindObf("osu.Graphics.UserInterface.pDialog");
 			var pDialog_ctor = pDialog?.FindMethod(".ctor");
 			var pDialog_AddOption = pDialog?.FindMethodObf("AddOption");
 
-			var XnaColor = CMain.OsuModule.FindReflection("Microsoft.Xna.Framework.Graphics.Color");
+			var XnaColor = Program.OsuModule.FindReflection("Microsoft.Xna.Framework.Graphics.Color");
 			var XnaColor_get_YellowGreen = XnaColor?.FindMethod("get_YellowGreen");
 
-			var EventHandler_ctor = CMain.OsuModule.CreateMethodRef(false, typeof(EventHandler), ".ctor", typeof(void), typeof(object), typeof(IntPtr));
+			var EventHandler_ctor = Program.OsuModule.CreateMethodRef(false, typeof(EventHandler), ".ctor", typeof(void), typeof(object), typeof(IntPtr));
 
 			if (GameBase_ShowDialog == null || Player == null || Player_currentScore == null || Score == null || Score_EnabledMods == null || Score_submit == null || XnaColor == null ||
 				pDialog == null || pDialog_AddOption == null || XnaColor == null || XnaColor_get_YellowGreen == null || EventHandler_ctor == null)
@@ -682,7 +682,7 @@ namespace osu_patch
 			MethodImplAttributes implFlags = MethodImplAttributes.IL | MethodImplAttributes.Managed;
 			MethodAttributes flags = MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot;
 
-			MethodDefUser method = new MethodDefUser("SubmitOption_" + submitMode.ToString(), MethodSig.CreateStatic(CMain.OsuModule.CorLibTypes.Void, CMain.OsuModule.CorLibTypes.Object, typeof(DoWorkEventArgs).GetTypeSig()), implFlags, flags);
+			MethodDefUser method = new MethodDefUser("SubmitOption_" + submitMode.ToString(), MethodSig.CreateStatic(Program.OsuModule.CorLibTypes.Void, Program.OsuModule.CorLibTypes.Object, typeof(DoWorkEventArgs).GetTypeSig()), implFlags, flags);
 
 			CilBody body = new CilBody();
 			method.Body = body;

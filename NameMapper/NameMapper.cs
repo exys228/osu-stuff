@@ -14,16 +14,16 @@ using NameMapper.Exceptions;
 namespace NameMapper
 {
 	/// <summary>
-	/// This program is used to identify obfuscated method/field/class names considering that you have similiar binary (may be updated/changed, comparsions are made based on similiarity).
+	/// This program is used to identify obfuscated method/field/class names considering that you have similar binary (may be updated/changed, comparisons are made based on similarity).
 	/// </summary>
 	public class NameMapper
 	{
-		private const float DefaultMinimalSuccessPercentage = .1f;
+		private const float DEFAULT_MINIMAL_SUCCESS_PERCENTAGE = .1f;
 
 		internal ModuleDefMD CleanModule { get; } // Module to inherit names from
 
 		internal ModuleDefMD ObfModule { get; }
-
+		
 		private TextWriter _debugOutput;
 
 		private NamableProcessor _namableProcessor;
@@ -135,10 +135,10 @@ namespace NameMapper
 
 			var processedTypesCount = _namableProcessor.AlreadyProcessedTypes.Count;
 			var allTypesCount = ObfModule.CountTypes(x => !x.IsEazInternalName());
-			var processedOutOfAll = (float)processedTypesCount / allTypesCount;
+			var processedPercentage = (float)processedTypesCount / allTypesCount;
 
-			if (processedOutOfAll < DefaultMinimalSuccessPercentage)
-				throw new NameMapperProcessingException($"Processed types percentage: {processedTypesCount}/{allTypesCount} => {processedOutOfAll * 100}% < {DefaultMinimalSuccessPercentage * 100}% (min), counting as unsuccessful.");
+			if (processedPercentage < DEFAULT_MINIMAL_SUCCESS_PERCENTAGE)
+				throw new NameMapperProcessingException($"Processed types percentage: {processedTypesCount}/{allTypesCount} => {processedPercentage * 100}% < {DEFAULT_MINIMAL_SUCCESS_PERCENTAGE * 100}% (min), counting as unsuccessful.");
 
 			// -- END
 		}
@@ -182,7 +182,7 @@ namespace NameMapper
 		/// Try to find a valid entry point for assembly, returns null if not found.
 		/// </summary>
 		/// <param name="module">Module to find entry point in.</param>
-		/// <returns>Real Entrypoint, null if not found.</returns>
+		/// <returns>True entry point, null if not found.</returns>
 		private MethodDef FindEntryPoint(ModuleDef module)
 		{
 			if (module?.EntryPoint?.Body?.Instructions?.Count == 2 && module.EntryPoint.Body.Instructions[0]?.OpCode == OpCodes.Call)
@@ -201,7 +201,7 @@ namespace NameMapper
 			{
 				try
 				{
-					RecurseResult recurseResult = new RecurseResult(RecurseResultEnum.None);
+					var recurseResult = new RecurseResult(RecurseResultEnum.None);
 
 					try
 					{
@@ -270,8 +270,7 @@ namespace NameMapper
 					if (!cleanMethod.HasBody || !obfMethod.HasBody)
 						return new RecurseResult(RecurseResultEnum.Ok); // all possible things are done at this moment
 
-					// ReSharper disable PossibleNullReference
-
+					// ReSharper disable PossibleNullReferenceException
 					if (cleanInstr.Count != obfInstr.Count)
 						return new RecurseResult(RecurseResultEnum.DifferentInstructionsCount, Math.Abs(cleanInstr.Count - obfInstr.Count));
 
@@ -384,7 +383,7 @@ namespace NameMapper
 			return true;
 		}
 
-		private object _msgLock = new object();
+		private static object _msgLock = new object();
 
 		internal bool Message(string msg = "", bool newline = true)
 		{

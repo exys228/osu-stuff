@@ -11,7 +11,7 @@ namespace osu_patch.Explorers
 
 		public TypeDef Type { get; }
 
-		private INameProvider NameProvider { get; }
+		public INameProvider NameProvider { get; }
 
 		public MethodExplorer this[string name] => FindMethod(name);
 

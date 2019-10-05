@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using NameMapper.Exceptions;
 
+using osu_patch.Exceptions;
+
 namespace osu_patch.Naming
 {
 	class MapperNameProvider : INameProvider
@@ -61,7 +63,7 @@ namespace osu_patch.Naming
 				return name;
 
 			if (_nameMapper is null || !_nameMapper.Processed)
-				throw new NameMapperException("NameMapper is not initialized!");
+				throw new NameProviderException("NameMapper is not initialized!");
 
 			return _nameMapper.FindName(name);
 		}

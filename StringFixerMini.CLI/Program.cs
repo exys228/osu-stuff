@@ -11,7 +11,7 @@ using StringFixerMini;
 
 namespace StringFixerMini.CLI
 {
-	class Program
+	static class Program
 	{
 		private static ModuleDefMD _module;
 		private static Assembly _assembly;

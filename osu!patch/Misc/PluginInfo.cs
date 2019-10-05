@@ -2,7 +2,7 @@
 
 namespace osu_patch.Misc
 {
-	public class PluginInfo
+	class PluginInfo
 	{
 		public string AssemblyName { get; }
 
