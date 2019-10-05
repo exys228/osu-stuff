@@ -86,7 +86,7 @@ namespace OsuPatchPlugin.Misc
 				/*
 				if (Player.Failed && k == Keys.F1 && Player.currentScore != null)
 				{
-					this.HandleScoreSubmission();
+					this.HandleScoreSubmission(); <<< removing (noping) this
 					InputManager.ReplayScore = Player.currentScore;
 					ScoreManager.ExportReplay(Player.currentScore, true); <<< Inserts this
 					InputManager.set_ReplayMode(true);
@@ -97,6 +97,40 @@ namespace OsuPatchPlugin.Misc
 				*/
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
+		  new Patch("Smooth cursor trail", true, (patch, exp) => //some problems with it (System.InvalidProgramException: Common Language Runtime detected an invalid program.)
+			{
+				var add = exp["osu.Graphics.Renderers.CursorTrailRenderer"]["add"].Editor;
+				var loc = add.Locate(new[]
+				{
+					OpCodes.Ldarg_0,
+					OpCodes.Ldfld,
+					OpCodes.Ldc_R4,
+					OpCodes.Add
+				});
+				add.InsertAt(loc + 2, Instruction.Create(OpCodes.Ldc_R4, 0.8f), osu_patch.Editors.InsertMode.Overwrite);
+				var trailUpdate = exp["osu.Input.InputManager"]["updateCursorTrail"].Editor;
+				var trailLocation = trailUpdate.Locate(new[]
+				{
+					OpCodes.Ldloc_0,  // 0
+					OpCodes.Callvirt, // 1
+					OpCodes.Conv_R4,  // 2 <- nop by patch
+					OpCodes.Ldc_R4,   // 3 <- nop by patch
+					OpCodes.Mul,	  // 4 <- changed to conv.r4
+					OpCodes.Ldsfld,   // 5
+					OpCodes.Callvirt, // 6
+					OpCodes.Mul,	  // 7
+					OpCodes.Ldsfld,	  // 8
+					OpCodes.Ldfld,	  // 9
+					OpCodes.Mul,	  // 10
+					OpCodes.Ldc_R4,   // 11 <- replaced by 10.5f
+					OpCodes.Div,	  // 12
+					OpCodes.Stloc_S	  // 13
+				});
+				trailUpdate.NopAt(trailLocation + 2, 2);
+				trailUpdate.InsertAt(trailLocation + 4, Instruction.Create(OpCodes.Conv_R4), osu_patch.Editors.InsertMode.Overwrite); // change mul to conv.r4
+				trailUpdate.InsertAt(trailLocation + 11, Instruction.Create(OpCodes.Ldc_R4, 10.5f), osu_patch.Editors.InsertMode.Overwrite);	
+				return new PatchResult(patch, PatchStatus.Success);
+			}), 
 			new Patch("No minimum delay before pausing again", true, (patch, exp) =>
 			{
 				// first 27 instructions
@@ -169,15 +203,6 @@ namespace OsuPatchPlugin.Misc
 			}),
 			new Patch("Don't send frames to spectators (NoSpec)", true, (patch, exp) =>
 			{
-				/*
-				 *	if (!warningMouseButtonsDisabled && ConfigManager.sMouseDisableButtons)
-				 *	{
-				 *		warningMouseButtonsDisabled = true;
-				 *		NotificationManager.ShowMessage(string.Format(LocalisationManager.GetString(OsuString.InputManager_MouseButtonsDisabledWarning), BindingManager.For(Bindings.DisableMouseButtons)), Color.Beige, 10000);
-				 *	}
-				 *
-				 */
-
 				exp["osu.Online.StreamingManager"]["PurgeFrames"].Editor.LocateAndNop(new[]
 				{
 					OpCodes.Ldc_I4_S,
@@ -206,7 +231,8 @@ namespace OsuPatchPlugin.Misc
 			}),
 			new Patch("Don't send anti-cheat flags to Bancho", true, (patch, exp) =>
 			{
-				// Startup flags // Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
+				// Startup flags 
+				// Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
 				exp["osu.Helpers.Scrobbler"]["sendCurrentTrack"].Editor.LocateAndNop(new[]
 				{
 					OpCodes.Ldsfld,
@@ -240,7 +266,6 @@ namespace OsuPatchPlugin.Misc
 			}),
 			new Patch("Remove check if filename is \"osu!.exe\"", true, (patch, exp) =>
 			{
-				// Startup flags // Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
 				exp["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
 				{
 					OpCodes.Call,
