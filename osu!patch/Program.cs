@@ -196,7 +196,7 @@ namespace osu_patch
 			}
 
 			// Executing local patches.
-			foreach (var patch in Patches.PatchList)
+			foreach (var patch in LocalPatches.PatchList)
 				ExecutePatchCli(patch);
 
 			Message("I | Done processing all local patches! Now processing patches from loaded add-ons...");

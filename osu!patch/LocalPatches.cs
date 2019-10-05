@@ -17,11 +17,9 @@ using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
 
 namespace osu_patch
 {
-	internal static class Patches
+	internal static class LocalPatches
 	{
-		
-
-		internal static readonly Patch[] PatchList = // i thought that separating necessary patches from other ones would be better, so patches down below are 'vital' 
+		internal static readonly Patch[] PatchList = // i thought that separating necessary patches from other ones would be better, so patches down below are 'vital' for running patched osu! without any problems
 		{
 			new Patch("\"Unsigned executable\" fix", true, (patch, exp) =>
 			{

@@ -81,7 +81,7 @@
     <Compile Include="MD5Helper.cs" />
     <Compile Include="Patch.cs" />
     <Compile Include="Naming\MapperNameProvider.cs" />
-    <Compile Include="Patches.cs" />
+    <Compile Include="LocalPatches.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Explorers\ModuleExplorer.cs" />
