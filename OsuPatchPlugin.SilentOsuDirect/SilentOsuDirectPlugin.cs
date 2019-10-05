@@ -17,17 +17,17 @@ namespace OsuPatchPlugin.SilentOsuDirect
 
 				var loc = editor.Locate(new[]
 				{
-					OpCodes.Ldc_I4_S, 
-					OpCodes.Starg_S, 
-					OpCodes.Br_S, 
-					OpCodes.Call, 
-					OpCodes.Brfalse_S, 
+					OpCodes.Ldc_I4_S,
+					OpCodes.Starg_S,
+					OpCodes.Br_S,
+					OpCodes.Call,
+					OpCodes.Brfalse_S,
 				});
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
 		};
-		
+
 		public void Load(ModuleDef originalObfOsuModule) { }
 	}
 }

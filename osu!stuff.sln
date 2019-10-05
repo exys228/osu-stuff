@@ -15,15 +15,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringFixerMini.CLI", "Stri
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OsuPatchPlugin.Misc", "OsuPatchPlugin.Misc\OsuPatchPlugin.Misc.csproj", "{BEAED91E-5A49-4E64-967F-72D8D5043BFE}"
 EndProject
-<<<<<<< Updated upstream
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OsuPatchPlugin.SilentOsuDirect", "OsuPatchPlugin.SilentOsuDirect\OsuPatchPlugin.SilentOsuDirect.csproj", "{38108594-6564-4EBC-9952-9096DF0CE8EF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HookAssemblyGenerator", "HookAssemblyGenerator\HookAssemblyGenerator.csproj", "{00701EF9-2B26-453F-A623-D778DA791508}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OsuVersionDownloader", "OsuVersionDownloader\OsuVersionDownloader.csproj", "{DC838681-50CD-41A6-B972-97606A2AB89D}"
-=======
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OsuPatchPlugin.NoFlags", "OsuPatchPlugin.NoFlags\OsuPatchPlugin.NoFlags.csproj", "{1CA60738-A64B-4C64-BC0A-1B934894D07D}"
->>>>>>> Stashed changes
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,7 +64,6 @@ Global
 		{BEAED91E-5A49-4E64-967F-72D8D5043BFE}.LiveDebug|Any CPU.Build.0 = LiveDebug|Any CPU
 		{BEAED91E-5A49-4E64-967F-72D8D5043BFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BEAED91E-5A49-4E64-967F-72D8D5043BFE}.Release|Any CPU.Build.0 = Release|Any CPU
-<<<<<<< Updated upstream
 		{38108594-6564-4EBC-9952-9096DF0CE8EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{38108594-6564-4EBC-9952-9096DF0CE8EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{38108594-6564-4EBC-9952-9096DF0CE8EF}.LiveDebug|Any CPU.ActiveCfg = LiveDebug|Any CPU
@@ -87,14 +82,6 @@ Global
 		{DC838681-50CD-41A6-B972-97606A2AB89D}.LiveDebug|Any CPU.Build.0 = Debug|Any CPU
 		{DC838681-50CD-41A6-B972-97606A2AB89D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC838681-50CD-41A6-B972-97606A2AB89D}.Release|Any CPU.Build.0 = Release|Any CPU
-=======
-		{1CA60738-A64B-4C64-BC0A-1B934894D07D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1CA60738-A64B-4C64-BC0A-1B934894D07D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1CA60738-A64B-4C64-BC0A-1B934894D07D}.LiveDebug|Any CPU.ActiveCfg = LiveDebug|Any CPU
-		{1CA60738-A64B-4C64-BC0A-1B934894D07D}.LiveDebug|Any CPU.Build.0 = LiveDebug|Any CPU
-		{1CA60738-A64B-4C64-BC0A-1B934894D07D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1CA60738-A64B-4C64-BC0A-1B934894D07D}.Release|Any CPU.Build.0 = Release|Any CPU
->>>>>>> Stashed changes
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

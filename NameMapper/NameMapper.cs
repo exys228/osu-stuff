@@ -45,7 +45,7 @@ namespace NameMapper
 			CleanModule = cleanModule;
 			ObfModule = obfModule;
 			DeobfuscateNames = deobfuscateNames;
-			_debugOutput = debugOutput; 
+			_debugOutput = debugOutput;
 			_namableProcessor = new NamableProcessor(this);
 		}
 
@@ -79,7 +79,7 @@ namespace NameMapper
 
 			int prevCount = -1;
 
-			while(true)
+			while (true)
 			{
 				long recurseNum = 0;
 
@@ -147,8 +147,8 @@ namespace NameMapper
 		{
 			string obfName = null;
 
-			if(Processed)
-				if(!NamePairs.TryGetValue(cleanName, out obfName))
+			if (Processed)
+				if (!NamePairs.TryGetValue(cleanName, out obfName))
 					throw new NameMapperException("Unable to find specified name: " + cleanName);
 
 			return obfName;
@@ -388,8 +388,8 @@ namespace NameMapper
 
 		internal bool Message(string msg = "", bool newline = true)
 		{
-			lock(_msgLock)
-					_debugOutput?.Write(msg + (newline ? Environment.NewLine : string.Empty));
+			lock (_msgLock)
+				_debugOutput?.Write(msg + (newline ? Environment.NewLine : string.Empty));
 
 			return false;
 		}

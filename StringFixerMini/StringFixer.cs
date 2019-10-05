@@ -36,7 +36,7 @@ namespace StringFixerMini
 			//for every method with a body...
 			foreach (MethodDef meth in GetMethodsRecursive(module).Where(a => a.HasBody && a.Body.HasInstructions))
 			{
-				if(meth.IsEazInternalName() || meth.DeclaringType != null && meth.DeclaringType.IsEazInternal())
+				if (meth.IsEazInternalName() || meth.DeclaringType != null && meth.DeclaringType.IsEazInternal())
 					continue;
 
 				//.. and every instruction (starting at the second one) ...
@@ -95,7 +95,7 @@ namespace StringFixerMini
 		}
 
 		private static IEnumerable<MethodDef> GetMethodsRecursive(ModuleDef t) => t.Types.SelectMany(GetMethodsRecursive);
-		
+
 		private static IEnumerable<MethodDef> GetMethodsRecursive(TypeDef type)
 		{
 			//return all methods in this type
@@ -104,8 +104,8 @@ namespace StringFixerMini
 
 			//go through nested types
 			foreach (TypeDef t in type.NestedTypes)
-			foreach (MethodDef m in GetMethodsRecursive(t))
-				yield return m;
+				foreach (MethodDef m in GetMethodsRecursive(t))
+					yield return m;
 		}
 
 		private static MethodInfo FindMethod(System.Reflection.Assembly ass, MethodDef meth, Type[] args)

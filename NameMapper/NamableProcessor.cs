@@ -123,7 +123,7 @@ namespace NameMapper
 						{
 							AddOrCheckNamePair(cleanMethodDef.Name, obfMethodDef.Name);
 
-							if(ParentInstance.DeobfuscateNames)
+							if (ParentInstance.DeobfuscateNames)
 								obfMethodDef.Name = cleanMethodDef.Name;
 						}
 
@@ -190,7 +190,7 @@ namespace NameMapper
 						{
 							AddOrCheckNamePair(cleanFieldDef.Name, obfFieldDef.Name);
 
-							if(ParentInstance.DeobfuscateNames)
+							if (ParentInstance.DeobfuscateNames)
 								obfFieldDef.Name = cleanFieldDef.Name;
 						}
 

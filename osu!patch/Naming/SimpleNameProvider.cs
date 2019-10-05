@@ -39,7 +39,7 @@ namespace osu_patch.Naming
 		{
 			string obfName = null;
 
-			if(_names is null || !_names.TryGetValue(name, out obfName))
+			if (_names is null || !_names.TryGetValue(name, out obfName))
 				throw new NameProviderException("Unable to find name: " + name);
 
 			return obfName;

@@ -35,7 +35,7 @@ namespace NameMapper
 			void Count(TypeDef type)
 			{
 				foreach (var nestedType in type.NestedTypes)
-					if(predicate(type))
+					if (predicate(type))
 						Count(nestedType);
 
 				count++;

@@ -20,10 +20,10 @@ namespace NameMapper.CLI
 		private static string _obfModulePath;
 
 		private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
-		                                                     MetadataFlags.PreserveUSOffsets |
-		                                                     MetadataFlags.PreserveBlobOffsets |
-		                                                     MetadataFlags.PreserveExtraSignatureData |
-		                                                     MetadataFlags.KeepOldMaxStack;
+															 MetadataFlags.PreserveUSOffsets |
+															 MetadataFlags.PreserveBlobOffsets |
+															 MetadataFlags.PreserveExtraSignatureData |
+															 MetadataFlags.KeepOldMaxStack;
 
 		static int Main(string[] args)
 		{
