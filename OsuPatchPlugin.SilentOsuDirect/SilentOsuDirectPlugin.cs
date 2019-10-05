@@ -9,8 +9,9 @@ namespace OsuPatchPlugin.SilentOsuDirect
 {
 	public class SilentOsuDirectPlugin : IOsuPatchPlugin
 	{
-		public IEnumerable<Patch> GetPatches() => new[]
+		public IEnumerable<Patch> GetPatches() => new Patch[]
 		{
+			/*
 			new Patch("UpdateStatus patch", true, (patch, exp) =>
 			{
 				var editor = exp["osu.Online.BanchoClient"]["UpdateStatus"].Editor;
@@ -25,7 +26,8 @@ namespace OsuPatchPlugin.SilentOsuDirect
 				});
 
 				return new PatchResult(patch, PatchStatus.Success);
-			}),
+			})
+			*/
 		};
 
 		public void Load(ModuleDef originalObfOsuModule) { }

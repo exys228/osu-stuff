@@ -237,6 +237,29 @@ namespace OsuPatchPlugin.Misc
 				});
 
 				return new PatchResult(patch, PatchStatus.Success);;
+			}),
+			new Patch("Remove check if filename is \"osu!.exe\"", true, (patch, exp) =>
+			{
+				// Startup flags // Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
+				exp["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Call,
+					null, // ezstr
+					null, // --
+					OpCodes.Call,
+					OpCodes.Brfalse_S,
+					null, // ezstr
+					null, // --
+					OpCodes.Newobj,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Newobj,
+					OpCodes.Call,
+					OpCodes.Pop,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Call
+				});
+
+				return new PatchResult(patch, PatchStatus.Success);;
 			})
 					
 			#region Disabled
