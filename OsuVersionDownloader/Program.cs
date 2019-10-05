@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.IO;
-using System.Linq;
-using System.Management.Instrumentation;
 using System.Net;
-using System.Net.Http;
-using System.Text;
+using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace OsuVersionDownloader
 {
@@ -17,12 +11,14 @@ namespace OsuVersionDownloader
 	{
 		private const string CHECK_UPDATES_TEMPLATE = "https://osu.ppy.sh/web/check-updates.php?action=check&stream={0}&time={1}";
 		private const string DOWNLOAD_TARGET_TEMPLATE = "https://osu.ppy.sh/web/check-updates.php?action=path&stream={0}&target={1}";
-		public const int RETRY_SLEEP_TIME = 2000;
+		private const int RETRY_SLEEP_TIME = 2000;
 
-		public const string DEFAULT_BACKUP_FOLDER = "osu!bak";
+		private const string DEFAULT_BACKUP_FOLDER = "osu!bak";
+
+		private static readonly string ExecutingAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
 
-		static int Main(string[] args)
+		public static int Main(string[] args)
 		{
 			if (args.Length < 2)
 				return Message("OsuVersionDownloader - download osu! versions from osu.ppy.sh\n" +
@@ -72,7 +68,7 @@ namespace OsuVersionDownloader
 			return 0;
 		}
 
-		public static void MakeBackup(string path)
+		private static void MakeBackup(string path)
 		{
 			var directory = Path.GetDirectoryName(path);
 			var fileName = Path.GetFileNameWithoutExtension(path);
@@ -99,7 +95,7 @@ namespace OsuVersionDownloader
 		/// <param name="targetFile">Target filename (ex. osu!.exe, bass_fx.dll etc.)</param>
 		/// <param name="target">Target number (file_version), default is latest</param>
 		/// <returns>Dictionary (file name to write with extension; file data)</returns>
-		public static byte[] GetDataFromStream(string streamName, string targetFile, long target = -1)
+		private static byte[] GetDataFromStream(string streamName, string targetFile, long target = -1)
 		{
 			byte[] ret = null;
 
@@ -140,6 +136,14 @@ namespace OsuVersionDownloader
 						if (updateFile.file_hash.Value.Equals(MD5Helper.Compute(targetFile), StringComparison.OrdinalIgnoreCase))
 							continue;
 
+					var cachedAssemblyPath = Path.Combine(ExecutingAssemblyLocation, updateFile.file_hash.Value + Path.GetExtension(targetFile));
+
+					if (File.Exists(cachedAssemblyPath))
+					{
+						Message($"Found cached copy of {targetFile}!");
+						return File.ReadAllBytes(cachedAssemblyPath);
+					}
+
 					int retryCount = 0;
 
 					while (true)
@@ -156,12 +160,11 @@ namespace OsuVersionDownloader
 						}
 
 						if (++retryCount > 3)
-							break;
+							return ret;
 					}
 
-					if (retryCount <= 3)
-						Console.WriteLine($"Successfully downloaded {updateFile.filename.Value}!");
-
+					File.WriteAllBytes(cachedAssemblyPath, ret);
+					Message($"Successfully downloaded {targetFile}!");
 					break;
 				}
 			}
@@ -169,9 +172,9 @@ namespace OsuVersionDownloader
 			return ret;
 		}
 
-		public static byte[] GetDataFromUrl(string url) => new WebClient().DownloadData(url);
+		private static byte[] GetDataFromUrl(string url) => new WebClient().DownloadData(url);
 
-		static int Message(string msg)
+		private static int Message(string msg)
 		{
 			Console.WriteLine(msg);
 			return 1;
