@@ -6,6 +6,8 @@ using osu_patch.Misc;
 using System;
 using System.Collections.Generic;
 
+using osu_patch.Editors;
+
 namespace OsuPatchPlugin.Misc
 {
 	public class MiscPlugin : IOsuPatchPlugin
@@ -74,7 +76,6 @@ namespace OsuPatchPlugin.Misc
 				var currentScore = Player.FindField("currentScore");
 
 				onKeyPressed.Editor.NopAt(loc + 11, 2);
-
 				onKeyPressed.Editor.InsertAt(loc + 15, new[]
 				{
 					Instruction.Create(OpCodes.Ldsfld, currentScore),
@@ -97,7 +98,7 @@ namespace OsuPatchPlugin.Misc
 				*/
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-		  new Patch("Smooth cursor trail", true, (patch, exp) => //some problems with it (System.InvalidProgramException: Common Language Runtime detected an invalid program.)
+			new Patch("Smooth cursor trail", true, (patch, exp) =>
 			{
 				var add = exp["osu.Graphics.Renderers.CursorTrailRenderer"]["add"].Editor;
 				var loc = add.Locate(new[]
@@ -107,8 +108,11 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Ldc_R4,
 					OpCodes.Add
 				});
-				add.InsertAt(loc + 2, Instruction.Create(OpCodes.Ldc_R4, 0.8f), osu_patch.Editors.InsertMode.Overwrite);
+
+				add.InsertAt(loc + 2, Instruction.Create(OpCodes.Ldc_R4, 0.8f), InsertMode.Overwrite);
+
 				var trailUpdate = exp["osu.Input.InputManager"]["updateCursorTrail"].Editor;
+
 				var trailLocation = trailUpdate.Locate(new[]
 				{
 					OpCodes.Ldloc_0,  // 0
@@ -126,9 +130,11 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Div,	  // 12
 					OpCodes.Stloc_S	  // 13
 				});
+
 				trailUpdate.NopAt(trailLocation + 2, 2);
-				trailUpdate.InsertAt(trailLocation + 4, Instruction.Create(OpCodes.Conv_R4), osu_patch.Editors.InsertMode.Overwrite); // change mul to conv.r4
-				trailUpdate.InsertAt(trailLocation + 11, Instruction.Create(OpCodes.Ldc_R4, 10.5f), osu_patch.Editors.InsertMode.Overwrite);	
+				trailUpdate.ReplaceAt(trailLocation + 4, Instruction.Create(OpCodes.Conv_R4)); // change mul to conv.r4
+				trailUpdate.ReplaceAt(trailLocation + 11, Instruction.Create(OpCodes.Ldc_R4, 10.5f));
+				
 				return new PatchResult(patch, PatchStatus.Success);
 			}), 
 			new Patch("No minimum delay before pausing again", true, (patch, exp) =>

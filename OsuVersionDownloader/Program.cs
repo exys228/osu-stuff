@@ -17,7 +17,6 @@ namespace OsuVersionDownloader
 
 		private static readonly string ExecutingAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-
 		public static int Main(string[] args)
 		{
 			if (args.Length < 2)
