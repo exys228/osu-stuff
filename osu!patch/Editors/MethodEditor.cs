@@ -15,13 +15,12 @@ namespace osu_patch.Editors
 
 		public IList<Instruction> Instrs => Body.Instructions;
 
-		public int Count => Body.Instructions.Count;
+		public int Count => Instrs.Count;
 
 		private int _position;
 
 		/// <summary>
 		/// Counts from 0, you may set index that is equals to current Count and that will just add instruction to desired position instead of inserting it, pretty cool too.
-		/// (atleast that's the idea, i wrote this just to not forget my plan on how this should work will forget anyways shieeet)
 		/// </summary>
 		public int Position
 		{
@@ -41,7 +40,7 @@ namespace osu_patch.Editors
 		public MethodEditor(MethodExplorer parent)
 		{
 			Parent = parent;
-			Body = Parent.Method.Body;
+			Body = parent.Method.Body;
 			Position = 0;
 		}
 
@@ -56,7 +55,7 @@ namespace osu_patch.Editors
 				if (index >= Body.Instructions.Count)
 					throw new IndexOutOfRangeException("Index is outside the bounds of array.");
 
-				Body.Instructions[index] = value;
+				ReplaceAt(index, value);
 			}
 		}
 
@@ -64,8 +63,9 @@ namespace osu_patch.Editors
 		/// Clamps <see cref="Position"/> between 0 and <see cref="Body"/>.Instructions.Count - 1 (last <see cref="Instruction"/>).
 		/// </summary>
 		public void ClampPosition() =>
-			_position = _position.Clamp(0, Count);
+			_position = _position.Clamp(0, Math.Max(0, Count - 1));
 
+		#region Locate
 		/// <summary>
 		/// Locate given <see cref="OpCode"/> <paramref name="signature"/> in <see cref="Body"/>.
 		/// </summary>
@@ -103,7 +103,8 @@ namespace osu_patch.Editors
 
 			throw new MethodEditorLocateException("Unable to locate given signature.");
 		}
-
+		#endregion
+		#region Insert
 		/// <summary>
 		/// Insert given <paramref name="instruction"/> in <see cref="Body"/> at <see cref="Position"/>.
 		/// </summary>
@@ -126,14 +127,12 @@ namespace osu_patch.Editors
 					break;
 
 				case InsertMode.Overwrite:
-					Instrs[index] = instruction;
+					ReplaceAt(index, instruction);
 					break;
 
 				default:
 					return;
 			}
-
-			SimplifyAndOptimize();
 		}
 
 		/// <summary>
@@ -164,12 +163,7 @@ namespace osu_patch.Editors
 					int i = 0;
 
 					while (i < list.Count && index + i < Count) // overwrite existing
-					{
-						Instrs[index + i].OpCode = list[i].OpCode;
-						Instrs[index + i].Operand = list[i].Operand;
-
-						i++;
-					}
+						ReplaceAt(index, list[i++]);
 
 					while (i < list.Count) // add at end if something is left
 						Add(list[i++]);
@@ -179,8 +173,20 @@ namespace osu_patch.Editors
 				default:
 					return;
 			}
+		}
+		#endregion
+		#region Replace
+		public void Replace(Instruction ins) =>
+			ReplaceAt(_position, ins);
 
-			SimplifyAndOptimize();
+		public void ReplaceAt(int index, Instruction ins)
+		{
+			if (ins != null)
+			{
+				Instrs[index].OpCode = ins.OpCode;
+				Instrs[index].Operand = ins.Operand;
+			}
+			else Instrs[index].OpCode = OpCodes.Nop;
 		}
 
 		public void Replace(int index, IList<Instruction> list) =>
@@ -189,9 +195,9 @@ namespace osu_patch.Editors
 		public void ReplaceAt(int index, int count, IList<Instruction> list)
 		{
 			if (index + count > Count)
-				throw new IndexOutOfRangeException($"Count of instructions is outside Instrs list! ({index + count} >= {Count} (max))");
+				throw new IndexOutOfRangeException($"Count of instructions is outside Instrs list! ({index + count} > {Count} (max))");
 
-			var newList = new List<Instruction>(list); // because we're removing some instructions in process and list is passed as ref
+			var newList = new List<Instruction>(list); // because we're removing some instructions in process and list is an atomic type
 
 			for (int i = 0; i < count; i++)
 			{
@@ -207,36 +213,21 @@ namespace osu_patch.Editors
 				else Instrs[index + i].OpCode = OpCodes.Nop;
 			}
 
-			if (newList.Count > 0)
+			if (newList.Count > 0) // insert what is left
 				InsertAt(index + count, newList);
-
-			SimplifyAndOptimize();
 		}
-
-		/// <summary>
-		/// Find next occurence of given <see cref="OpCode"/> starting from <see cref="Position"/>.
-		/// </summary>
-		/// <param name="opCode"><see cref="OpCode"/> to search for</param>
-		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
-		public int Next(OpCode opCode, bool setPosition = true)
-		{
-			for (int i = _position; i < Count; i++)
-				if (Instrs[i].OpCode == opCode)
-					return setPosition ? Position = i : i;
-
-			throw new MethodEditorLocateException("Unable to locate given OpCode.");
-		}
-
+		#endregion
+		#region Remove
 		/// <summary>
 		/// Remove instruction(s) at <see cref="Position"/>.
-		/// Use <see cref="Nop"/> to preserve destination param of branch-aimed <see cref="OpCodes"/>.
+		/// Use <see cref="Nop"/> to preserve destination param of branch-manipulating <see cref="OpCodes"/>.
 		/// </summary>
 		public void Remove(int count = 1) =>
 			RemoveAt(_position, count);
 
 		/// <summary>
-		/// Remove instuction(s) at given <see cref="index"/>.
-		/// Use <see cref="NopAt"/> to preserve destination param of branch-aimed <see cref="OpCodes"/>.
+		/// Remove instruction(s) at given <see cref="index"/>.
+		/// Use <see cref="NopAt"/> to preserve destination param of branch-manipulating <see cref="OpCodes"/>.
 		/// </summary>
 		public void RemoveAt(int index, int count = 1)
 		{
@@ -244,9 +235,9 @@ namespace osu_patch.Editors
 				Instrs.RemoveAt(index);
 
 			ClampPosition();
-			SimplifyAndOptimize();
 		}
-
+		#endregion
+		#region Nop
 		/// <summary>
 		/// Nop instruction(s) at <see cref="Position"/>.
 		/// </summary>
@@ -261,7 +252,32 @@ namespace osu_patch.Editors
 			for (int i = 0; i < count && index + i < Count; i++)
 				Instrs[index + i].OpCode = OpCodes.Nop;
 		}
+		#endregion
+		#region Next
+		/// <summary>
+		/// Find next occurence of given <see cref="OpCode"/> starting from <see cref="Position"/>.
+		/// </summary>
+		/// <param name="opCode"><see cref="OpCode"/> to search for</param>
+		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
+		public int Next(OpCode opCode, bool setPosition = true) =>
+			NextFrom(_position, opCode, setPosition);
 
+		/// <summary>
+		/// Find next occurence of given <see cref="OpCode"/> starting from <see cref="Position"/>.
+		/// </summary>
+		/// <param name="index">Index to search from</param>
+		/// <param name="opCode"><see cref="OpCode"/> to search for</param>
+		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
+		public int NextFrom(int index, OpCode opCode, bool setPosition = true)
+		{
+			for (int i = index; i < Count; i++)
+				if (Instrs[i].OpCode == opCode)
+					return setPosition ? Position = i : i;
+
+			throw new MethodEditorLocateException("Unable to locate given OpCode.");
+		}
+		#endregion
+		#region Shortcuts
 		/// <summary>
 		/// Locate and remove given <see cref="OpCode"/> <paramref name="signature"/>.
 		/// Use <see cref="LocateAndNop"/> to preserve destination param of branch-aimed <see cref="OpCodes"/>.
@@ -278,6 +294,7 @@ namespace osu_patch.Editors
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
 		public void LocateAndNop(IList<OpCode> signature, bool setPosition = false) =>
 			NopAt(Locate(signature, setPosition), signature.Count);
+		#endregion
 
 		/// <summary>
 		/// Add given <paramref name="instruction"/> at the end of method body.
@@ -286,9 +303,11 @@ namespace osu_patch.Editors
 		public void Add(Instruction instruction) =>
 			Instrs.Add(instruction);
 
-		public void SimplifyAndOptimize()
+		/// <summary>
+		/// Optimizes <see cref="Instrs"/> branches.
+		/// </summary>
+		public void OptimizeBranches()
 		{
-			Body.SimplifyBranches();
 			Body.OptimizeBranches();
 		}
 	}
