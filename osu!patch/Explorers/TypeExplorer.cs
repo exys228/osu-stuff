@@ -22,28 +22,23 @@ namespace osu_patch.Explorers
 			NameProvider = nameProvider ?? MapperNameProvider.Instance;
 		}
 
-		public MethodExplorer FindMethod(string name)
+		public MethodExplorer FindMethod(string name, MethodSig sig = null)
 		{
-			var result = Type.FindMethod(NameProvider.GetName(name));
-
-			if (result is null)
-				throw CreateUnableToFindException("method");
+			var obfName = NameProvider.GetName(name);
+			var result = (sig is null ? Type.FindMethod(obfName) : Type.FindMethod(obfName, sig))
+						 ?? throw CreateUnableToFindException("method");
 
 			return new MethodExplorer(this, result);
 		}
 
-		public MethodExplorer FindMethodRaw(string name) =>
-			new MethodExplorer(this, Type.FindMethod(name) ?? throw CreateUnableToFindException("method"));
-
-		public FieldDef FindField(string name)
+		public MethodExplorer FindMethodRaw(string name, MethodSig sig = null)
 		{
-			var result = Type.FindField(NameProvider.GetName(name));
-
-			if (result is null)
-				throw CreateUnableToFindException("field");
-
-			return result;
+			var method = sig is null ? Type.FindMethod(name) : Type.FindMethod(name, sig);
+			return new MethodExplorer(this, method ?? throw CreateUnableToFindException("method"));
 		}
+
+		public FieldDef FindField(string name) =>
+			Type.FindField(NameProvider.GetName(name)) ?? throw CreateUnableToFindException("field");
 
 		public FieldDef FindFieldRaw(string name) =>
 			Type.FindField(name) ?? throw CreateUnableToFindException("field");

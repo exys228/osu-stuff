@@ -13,6 +13,11 @@ namespace osu_patch.Explorers
 
 		public TypeExplorer this[string name] => Find(name);
 
+		public ICorLibTypes CorLibTypes => Module.CorLibTypes;
+
+		public TypeSig GetCorLibTypeSig(Type type) =>
+			CorLibTypes.GetTypeRef(type.Namespace, type.Name).ToTypeSig();
+
 		public ModuleExplorer(ModuleDefMD module, INameProvider nameProvider = null)
 		{
 			Module = module;
