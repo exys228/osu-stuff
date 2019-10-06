@@ -535,7 +535,7 @@ namespace osu_patch
 			{
 				/* 0 */ Instruction.Create(OpCodes.Ldstr, "osu!patch\\osu!patch.exe"),
 				/* 1 */ Instruction.Create(OpCodes.Call, FileExists),
-				/* 2 */ Instruction.Create(OpCodes.Nop),
+				/* 2 */ Instruction.Create(OpCodes.Nop), // !!! BRFALSE.S
 				/* 3 */ Instruction.Create(OpCodes.Newobj, Process),
 				/* 4 */ Instruction.Create(OpCodes.Dup),
 				/* 5 */ Instruction.Create(OpCodes.Callvirt, ProcessGetStartInfo),
@@ -559,7 +559,7 @@ namespace osu_patch
 				/* 21 */ Instruction.Create(OpCodes.Dup),
 				/* 22 */ Instruction.Create(OpCodes.Callvirt, ProcessWaitForExit),
 				/* 23 */ Instruction.Create(OpCodes.Callvirt, ProcessGetExitCode),
-				/* 24 */ Instruction.Create(OpCodes.Nop),
+				/* 24 */ Instruction.Create(OpCodes.Nop), // !!! BRTRUE.S
 				/* 25 */ Instruction.Create(OpCodes.Ldstr, "osu!-osupatch.exe"),
 				/* 26 */ Instruction.Create(OpCodes.Ldstr, "osu!.exe"),
 				/* 27 */ Instruction.Create(OpCodes.Ldc_I4, 200),
@@ -581,7 +581,6 @@ namespace osu_patch
 
 			body.MaxStack = 5;
 
-			body.SimplifyBranches();
 			body.OptimizeBranches();
 
 			return method;
@@ -671,7 +670,6 @@ namespace osu_patch
 
 			body.MaxStack = 8;
 
-			body.SimplifyBranches();
 			body.OptimizeBranches();
 
 			return method;
@@ -696,7 +694,6 @@ namespace osu_patch
 
 			body.MaxStack = 8;
 
-			body.SimplifyBranches();
 			body.OptimizeBranches();
 
 			return method;
