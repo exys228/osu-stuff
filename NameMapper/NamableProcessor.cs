@@ -1,6 +1,7 @@
 ﻿using System;
 using dnlib.DotNet;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -15,19 +16,12 @@ namespace NameMapper
 	/// </summary>
 	class NamableProcessor
 	{
-		/// <summary>
-		/// Bool - is fully processed or not. Used after recurse from Main.
-		/// </summary>
-		public ConcurrentBag<TypePairInfo> AlreadyProcessedTypes = new ConcurrentBag<TypePairInfo>();
-		public ConcurrentBag<MethodPair> AlreadyProcessedMethods = new ConcurrentBag<MethodPair>();
-		public ConcurrentBag<FieldPair> AlreadyProcessedFields = new ConcurrentBag<FieldPair>();
+		public ProcessedManager Processed { get; } = new ProcessedManager();
 
 		public NameMapper ParentInstance { get; }
 
-		public NamableProcessor(NameMapper parentInstance)
-		{
+		public NamableProcessor(NameMapper parentInstance) =>
 			ParentInstance = parentInstance;
-		}
 
 		public ProcessResult ProcessTypeSig(TypeSig cleanSig, TypeSig obfSig)
 		{
@@ -53,14 +47,14 @@ namespace NameMapper
 
 			if (cleanType is TypeSig cleanTypeSig && obfType is TypeSig obfTypeSig)
 				return ProcessTypeSig(cleanTypeSig, obfTypeSig);
-
+			
 			if (Monitor.TryEnter(cleanType))
 			{
 				try
 				{
 					if (cleanType.IsFromModule(ParentInstance) && obfType.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedTypes.Any(x => x.Types.Item2.MDToken == obfType.MDToken))
+						if (Processed.Contains(obfType))
 							return ProcessResult.AlreadyProcessed;
 
 						var cleanTypeDef = cleanType.ScopeType.ResolveTypeDef();
@@ -82,7 +76,7 @@ namespace NameMapper
 
 						ProcessType(cleanTypeDef.BaseType, obfTypeDef.BaseType);
 
-						AlreadyProcessedTypes.Add(new TypePairInfo(new TypePair(cleanTypeDef, obfTypeDef), false));
+						Processed.Add(cleanTypeDef, obfTypeDef);
 					}
 					else return ProcessResult.FrameworkType;
 				}
@@ -107,7 +101,7 @@ namespace NameMapper
 				{
 					if (cleanMethod.IsFromModule(ParentInstance) && obfMethod.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedMethods.Any(x => x.Item2.MDToken == obfMethod.MDToken))
+						if (Processed.Contains(obfMethod))
 							return ProcessResult.AlreadyProcessed;
 
 						var cleanMethodDef = cleanMethod.ResolveMethodDef();
@@ -134,7 +128,7 @@ namespace NameMapper
 							ProcessMethodParameters(cleanMethodDef.Parameters, obfMethodDef.Parameters);
 						});
 
-						AlreadyProcessedMethods.Add(new MethodPair(cleanMethodDef, obfMethodDef));
+						Processed.Add(cleanMethodDef, obfMethodDef);
 					}
 					else return ProcessResult.FrameworkType;
 				}
@@ -183,7 +177,7 @@ namespace NameMapper
 				{
 					if (cleanFieldDef.IsFromModule(ParentInstance) && obfFieldDef.IsFromModule(ParentInstance))
 					{
-						if (AlreadyProcessedFields.Any(x => x.Item2.MDToken == obfFieldDef.MDToken))
+						if (Processed.Contains(obfFieldDef))
 							return ProcessResult.AlreadyProcessed;
 
 						if (obfFieldDef.NameIsObfuscated())
@@ -197,7 +191,7 @@ namespace NameMapper
 						ProcessType(cleanFieldDef.DeclaringType, obfFieldDef.DeclaringType);
 						ProcessType(cleanFieldDef.FieldType.ToTypeDefOrRef(), obfFieldDef.FieldType.ToTypeDefOrRef());
 
-						AlreadyProcessedFields.Add(new FieldPair(cleanFieldDef, obfFieldDef));
+						Processed.Add(cleanFieldDef, obfFieldDef);
 					}
 					else return ProcessResult.FrameworkType;
 				}
@@ -217,18 +211,6 @@ namespace NameMapper
 
 			if (ret != obfName)
 				ParentInstance.Message($"W | Found duplicate (errored) name pair: \"{cleanName}\" => given \"{obfName}\"  but got  \"{ret}\".");
-		}
-	}
-
-	class TypePairInfo
-	{
-		public TypePair Types;
-		public bool FullyProcessed;
-
-		public TypePairInfo(TypePair types, bool fullyProcessed)
-		{
-			Types = types;
-			FullyProcessed = fullyProcessed;
 		}
 	}
 

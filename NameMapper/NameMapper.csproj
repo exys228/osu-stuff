@@ -48,10 +48,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConcurrentHashSet.cs" />
     <Compile Include="Exceptions\NameMapperException.cs" />
     <Compile Include="Exceptions\NameMapperProcessingException.cs" />
     <Compile Include="NamableProcessor.cs" />
     <Compile Include="NameMapper.cs" />
+    <Compile Include="ProcessedManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

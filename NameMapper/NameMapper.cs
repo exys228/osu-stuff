@@ -79,11 +79,13 @@ namespace NameMapper
 
 			int prevCount = -1;
 
+			var procMan = _namableProcessor.Processed;
+
 			while (true)
 			{
 				long recurseNum = 0;
 
-				foreach (var item in _namableProcessor.AlreadyProcessedTypes.Where(x => !x.Types.Item2.IsEazInternalName()))
+				foreach (var item in procMan.AlreadyProcessedTypes.Where(x => !x.Types.Item2.IsEazInternalName()))
 				{
 					if (item.FullyProcessed)
 						continue;
@@ -113,7 +115,7 @@ namespace NameMapper
 
 				WaitMakeSure();
 
-				int count = _namableProcessor.AlreadyProcessedTypes.Count;
+				int count = procMan.AlreadyProcessedTypes.Count;
 
 				if (count == prevCount)
 					break;
@@ -125,15 +127,14 @@ namespace NameMapper
 
 			//	 --
 
-			// also wait
 			WaitMakeSure();
 
 			if (_overallErroredMethods > 0)
 				Message($"W | Not all methods are processed! {_overallErroredMethods} left behind.");
 
-			Message($"I | Overall known classes: {_namableProcessor.AlreadyProcessedTypes.Count}; Fully processed classes: {_namableProcessor.AlreadyProcessedTypes.Count(x => x.FullyProcessed)}");
+			Message($"I | Overall known classes: {procMan.AlreadyProcessedTypes.Count}; Fully processed classes: {procMan.AlreadyProcessedTypes.Count(x => x.FullyProcessed)}");
 
-			var processedTypesCount = _namableProcessor.AlreadyProcessedTypes.Count;
+			var processedTypesCount = procMan.AlreadyProcessedTypes.Count;
 			var allTypesCount = ObfModule.CountTypes(x => !x.IsEazInternalName());
 			var processedPercentage = (float)processedTypesCount / allTypesCount;
 
