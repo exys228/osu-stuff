@@ -50,7 +50,6 @@ namespace NameMapper.CLI
 			Message($"I | Loaded modules: {_cleanModule.Assembly.FullName} (clean); {_obfModule.Assembly.FullName} (obfuscated).");
 
 			NameMapper nameMapper = new NameMapper(_cleanModule, _obfModule, Console.Out);
-
 			nameMapper.BeginProcessing();
 
 			string filename = Path.GetFileNameWithoutExtension(_obfModulePath) + "-nmapped" + Path.GetExtension(_obfModulePath);

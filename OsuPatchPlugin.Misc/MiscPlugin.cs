@@ -4,6 +4,7 @@ using osu_patch;
 using osu_patch.Custom;
 using osu_patch.Misc;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 using osu_patch.Editors;
@@ -19,20 +20,20 @@ namespace OsuPatchPlugin.Misc
 				// literally first 10 instructions
 				exp["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
 				{
-					OpCodes.Ldsfld, // Player::Paused
-					OpCodes.Brtrue, // ret
-					OpCodes.Ldsfld, // Player::Unpausing
-					OpCodes.Brtrue, // ret
-					OpCodes.Ldsfld, // --
-					OpCodes.Ldarg_0, // --
-					OpCodes.Ldfld, // -- 
-					OpCodes.Ldc_I4, // --
-					OpCodes.Add, // --
-					OpCodes.Ble_S, // ^^ AudioEngine.Time > this.firstHitTime + 10000 && ...
-					OpCodes.Ldsfld, // --
-					OpCodes.Brtrue_S, // --
-					OpCodes.Ldsfld, // --
-					OpCodes.Brtrue_S, // ^^ ... !GameBase.TestMode && !EventManager.BreakMode
+					OpCodes.Ldsfld,		// Player::Paused
+					OpCodes.Brtrue,		// ret
+					OpCodes.Ldsfld,		// Player::Unpausing
+					OpCodes.Brtrue,		// ret
+					OpCodes.Ldsfld,		// --
+					OpCodes.Ldarg_0,	// --
+					OpCodes.Ldfld,		// -- 
+					OpCodes.Ldc_I4,		// --
+					OpCodes.Add,		// --
+					OpCodes.Ble_S,		// ^^ AudioEngine.Time > this.firstHitTime + 10000 && ...
+					OpCodes.Ldsfld,		// --
+					OpCodes.Brtrue_S,	// --
+					OpCodes.Ldsfld,		// --
+					OpCodes.Brtrue_S,	// ^^ ... !GameBase.TestMode && !EventManager.BreakMode
 					OpCodes.Ret
 				});
 
