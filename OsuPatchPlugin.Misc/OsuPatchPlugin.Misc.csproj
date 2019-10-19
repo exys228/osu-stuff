@@ -11,6 +11,7 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -81,5 +82,15 @@ ECHO Copying $(ProjectName) plugin to plugins\
 IF NOT EXIST "plugins\" MKDIR "plugins"
 COPY /Y "$(TargetPath)" "plugins\"
 EXIT /B 0</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO cleanup
+IF /I "$(ConfigurationName)"=="LiveDebug" GOTO cleanup
+EXIT /B 0
+
+:cleanup
+ECHO Configuration is $(ConfigurationName)! Removing $(ConfigurationName) from plugins\
+DEL /F "C:\osu!\osu!patch\plugins\$(TargetFileName)"
+EXIT /B 0</PreBuildEvent>
   </PropertyGroup>
 </Project>

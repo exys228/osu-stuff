@@ -12,6 +12,7 @@
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -114,7 +115,6 @@ EXIT /B 0
 ECHO Configuration is $(ConfigurationName)! Removing all stuff from C:\osu!\osu!patch
 DEL /F "C:\osu!\osu!patch\*.dll"
 DEL /F "C:\osu!\osu!patch\osu!patch.exe"
-DEL /Q "C:\osu!\osu!patch\plugins\"
 EXIT /B 0</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
