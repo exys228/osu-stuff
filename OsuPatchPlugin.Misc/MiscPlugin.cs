@@ -4,7 +4,6 @@ using osu_patch;
 using osu_patch.Custom;
 using osu_patch.Misc;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 using osu_patch.Editors;
@@ -20,20 +19,20 @@ namespace OsuPatchPlugin.Misc
 				// literally first 10 instructions
 				exp["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
 				{
-					OpCodes.Ldsfld,		// Player::Paused
-					OpCodes.Brtrue,		// ret
-					OpCodes.Ldsfld,		// Player::Unpausing
-					OpCodes.Brtrue,		// ret
-					OpCodes.Ldsfld,		// --
-					OpCodes.Ldarg_0,	// --
-					OpCodes.Ldfld,		// -- 
-					OpCodes.Ldc_I4,		// --
-					OpCodes.Add,		// --
-					OpCodes.Ble_S,		// ^^ AudioEngine.Time > this.firstHitTime + 10000 && ...
-					OpCodes.Ldsfld,		// --
-					OpCodes.Brtrue_S,	// --
-					OpCodes.Ldsfld,		// --
-					OpCodes.Brtrue_S,	// ^^ ... !GameBase.TestMode && !EventManager.BreakMode
+					OpCodes.Ldsfld, // Player::Paused
+					OpCodes.Brtrue, // ret
+					OpCodes.Ldsfld, // Player::Unpausing
+					OpCodes.Brtrue, // ret
+					OpCodes.Ldsfld, // --
+					OpCodes.Ldarg_0, // --
+					OpCodes.Ldfld, // -- 
+					OpCodes.Ldc_I4, // --
+					OpCodes.Add, // --
+					OpCodes.Ble_S, // ^^ AudioEngine.Time > this.firstHitTime + 10000 && ...
+					OpCodes.Ldsfld, // --
+					OpCodes.Brtrue_S, // --
+					OpCodes.Ldsfld, // --
+					OpCodes.Brtrue_S, // ^^ ... !GameBase.TestMode && !EventManager.BreakMode
 					OpCodes.Ret
 				});
 
@@ -135,9 +134,9 @@ namespace OsuPatchPlugin.Misc
 				trailUpdate.NopAt(trailLocation + 2, 2);
 				trailUpdate.ReplaceAt(trailLocation + 4, Instruction.Create(OpCodes.Conv_R4)); // change mul to conv.r4
 				trailUpdate.ReplaceAt(trailLocation + 11, Instruction.Create(OpCodes.Ldc_R4, 10.5f));
-				
+
 				return new PatchResult(patch, PatchStatus.Success);
-			}), 
+			}),
 			new Patch("No minimum delay before pausing again", true, (patch, exp) =>
 			{
 				// first 27 instructions
@@ -208,11 +207,108 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Don't send frames to spectators (NoSpec)", true, (patch, exp) =>
+			new Patch("Don't send frames to spectators (NoSpectator)", true, (patch, exp) =>
 			{
-				exp["osu.Online.StreamingManager"]["PurgeFrames"].Editor.LocateAndNop(new[]
+				var ConfigManager = exp["osu.Configuration.ConfigManager"].Type;
+
+				var BindableBool = exp["osu.Helpers.BindableBool"].Type;
+
+				var noSpec = new FieldDefUser("noSpec", new FieldSig(BindableBool.ToTypeSig()), FieldAttributes.Assembly | FieldAttributes.Static); // <-- creating new field (internal static BindableBool noSpec)
+
+				ConfigManager.Fields.Add(noSpec); // <-- add field to class
+
+				var ConfigEditor = exp["osu.Configuration.ConfigManager"]["Initialize"].Editor;
+
+				var ReadBool = exp["osu.Configuration.ConfigManager"]["ReadBool"].Method; 
+
+				var ConfigLoc = ConfigEditor.Locate(new[] 
 				{
-					OpCodes.Ldc_I4_S,
+					OpCodes.Nop,      // 1 <-- start of first option
+					OpCodes.Ldstr,    // 2
+					OpCodes.Ldloc_2,  // 3   two config options because so much almost similar instructions
+					OpCodes.Call,     // 4
+					OpCodes.Stsfld,   // 5
+					OpCodes.Nop,      // 6 <-- end of first option start of second option
+					OpCodes.Ldstr,    // 7
+					OpCodes.Ldc_I4_0, // 8
+					OpCodes.Call,	  // 9
+					OpCodes.Stsfld,	  // 10
+					OpCodes.Nop       // 11 <-- end of second option
+									  // ?? <-- start of our own
+				});
+
+				ConfigEditor.InsertAt(ConfigLoc + 11, new[] {
+					Instruction.Create(OpCodes.Ldstr, "noSpec"), // <-- name of our option in config
+					Instruction.Create(OpCodes.Ldc_I4_0),
+					Instruction.Create(OpCodes.Call, ReadBool),
+					Instruction.Create(OpCodes.Stsfld, noSpec),
+					Instruction.Create(OpCodes.Nop)
+				});
+
+				var OptionsEditor = exp["osu.GameModes.Options.Options"]["InitializeOptions"].Editor;
+
+				var OptionsLoc = OptionsEditor.Locate(new[] 
+				{
+					OpCodes.Callvirt, // 0
+					OpCodes.Ldloc_1,  // 1
+					OpCodes.Call,	  // 2
+					OpCodes.Ldarg_0,  // 3		
+					OpCodes.Call,	  // 4		from 4 to 6 { this.Add(new OptionVersion(General.get_BUILD_NAME())); }
+					OpCodes.Newobj,   // 5		
+					OpCodes.Call	  // 6
+									  // <-- Insert our option
+				});
+
+				var OptionCategory = exp["osu.GameModes.Options.OptionCategory"].FindMethodRaw(".ctor").Method;
+				var OptionSection = exp["osu.GameModes.Options.OptionSection"].Type;
+				var OptionElement = exp["osu.GameModes.Options.OptionElement"].Type;
+				var OptionSectionCtor = exp["osu.GameModes.Options.OptionSection"].FindMethodRaw(".ctor", MethodSig.CreateInstance(exp.CorLibTypes.Void, exp.CorLibTypes.String, exp.GetCorLibTypeSig(typeof(IEnumerable<string>)))).Method;
+				var optionCheckbox = exp["osu.GameModes.Options.OptionCheckbox"].FindMethodRaw(".ctor", MethodSig.CreateInstance(exp.CorLibTypes.Void, exp.CorLibTypes.String, exp.CorLibTypes.String, BindableBool.ToTypeSig(), exp.GetCorLibTypeSig(typeof(EventHandler)))).Method;
+				var set_Children = exp["osu.GameModes.Options.OptionElement"]["set_Children"].Method;
+				var optionAdd = exp["osu.GameModes.Options.Options"]["Add"].Method;
+
+				//OptionsEditor.NopAt(OptionsLoc, 6); // removing build name -- 
+
+				OptionsEditor.InsertAt(OptionsLoc + 6, new[]
+				{
+					Instruction.Create(OpCodes.Ldarg_0),							 //						|
+					Instruction.Create(OpCodes.Ldstr, "Custom"),					 // name of category    |
+					Instruction.Create(OpCodes.Ldc_I4, 0xF09B),						 // github icon			|	our own optionCategory
+					Instruction.Create(OpCodes.Newobj, OptionCategory),				 //						|
+					Instruction.Create(OpCodes.Stloc_1),							 //						|
+					Instruction.Create(OpCodes.Ldloc_1),
+					Instruction.Create(OpCodes.Ldc_I4_1),
+					Instruction.Create(OpCodes.Newarr, OptionSection),
+					Instruction.Create(OpCodes.Dup),
+					Instruction.Create(OpCodes.Ldc_I4_0),
+					Instruction.Create(OpCodes.Ldstr, "Some stuff"),				 // name of our section	| <-- option section starts here
+					Instruction.Create(OpCodes.Ldnull),								 // passed null as keywords
+					Instruction.Create(OpCodes.Newobj, OptionSectionCtor),
+					Instruction.Create(OpCodes.Stloc_0),						     // end of initializing optionSection
+					Instruction.Create(OpCodes.Ldloc_0),							 // start of optionElement (array with options)
+					Instruction.Create(OpCodes.Ldc_I4_1),
+					Instruction.Create(OpCodes.Newarr, OptionElement),
+					Instruction.Create(OpCodes.Dup),								 // our option starts here
+					Instruction.Create(OpCodes.Ldc_I4_0),
+					Instruction.Create(OpCodes.Ldstr, "No Spectators"),				 // name of our option
+					Instruction.Create(OpCodes.Ldstr, "Players can't spectate you"), // tooltip of our option
+					Instruction.Create(OpCodes.Ldsfld, noSpec),						 // reference to ConfigManager.noSpec
+					Instruction.Create(OpCodes.Ldnull),
+					Instruction.Create(OpCodes.Newobj, optionCheckbox),				 // add checkbox [new OptionCheckbox("No Spectators", ConfigManager.noSpec, null)]
+					Instruction.Create(OpCodes.Stelem_Ref),							 // end of optionSection
+					Instruction.Create(OpCodes.Callvirt, set_Children),
+					Instruction.Create(OpCodes.Ldloc_0),
+					Instruction.Create(OpCodes.Stelem_Ref),
+					Instruction.Create(OpCodes.Callvirt, set_Children),
+					Instruction.Create(OpCodes.Ldloc_1),
+					Instruction.Create(OpCodes.Call, optionAdd)						// add above to options -- Yeey, everything is done!
+				});
+
+
+				var specEditor = exp["osu.Online.StreamingManager"]["PurgeFrames"].Editor;
+
+				var specLoc = specEditor.Locate(new[] {
+				    OpCodes.Ldc_I4_S,
 					OpCodes.Ldsfld,
 					OpCodes.Ldarg_0,
 					OpCodes.Ldloc_3,
@@ -231,8 +327,15 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Add,
 					OpCodes.Stsfld,
 					OpCodes.Newobj,
-					OpCodes.Call
+					OpCodes.Call,
 				});
+
+				// check if noSpectator option is enabled
+				specEditor.InsertAt(specLoc - 1, new[] {
+					Instruction.Create(OpCodes.Ldarg_0),
+					Instruction.Create(OpCodes.Ldfld, noSpec), 
+					Instruction.Create(OpCodes.Brtrue_S, specEditor[specLoc + 21])
+				}); 
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
