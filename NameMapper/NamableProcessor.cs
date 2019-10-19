@@ -90,25 +90,22 @@ namespace NameMapper
 			return ProcessResult.Ok;
 		}
 
-		public ProcessResult ProcessMethod(IMethod cleanMethod, IMethod obfMethod)
+		public ProcessResult ProcessMethod(IMethod cleanMethod, IMethod obfMethod) =>
+			ProcessMethod(cleanMethod?.ResolveMethodDef(), obfMethod?.ResolveMethodDef());
+
+		public ProcessResult ProcessMethod(MethodDef cleanMethodDef, MethodDef obfMethodDef)
 		{
-			if (cleanMethod is null || obfMethod is null)
+			if (cleanMethodDef is null || obfMethodDef is null)
 				return ProcessResult.NullArguments;
 
-			if (Monitor.TryEnter(cleanMethod))
+			if (Monitor.TryEnter(cleanMethodDef))
 			{
 				try
 				{
-					if (cleanMethod.IsFromModule(ParentInstance) && obfMethod.IsFromModule(ParentInstance))
+					if (cleanMethodDef.IsFromModule(ParentInstance) && obfMethodDef.IsFromModule(ParentInstance))
 					{
-						if (Processed.Contains(obfMethod))
+						if (Processed.Contains(obfMethodDef))
 							return ProcessResult.AlreadyProcessed;
-
-						var cleanMethodDef = cleanMethod.ResolveMethodDef();
-						var obfMethodDef = obfMethod.ResolveMethodDef();
-
-						if (cleanMethodDef is null || obfMethodDef is null)
-							return ProcessResult.FailedToResolve;
 
 						if (cleanMethodDef.IsStatic != obfMethodDef.IsStatic)
 							return ProcessResult.DifferentMethods;
@@ -134,7 +131,7 @@ namespace NameMapper
 				}
 				finally
 				{
-					Monitor.Exit(cleanMethod);
+					Monitor.Exit(cleanMethodDef);
 				}
 			}
 			else return ProcessResult.AlreadyInProcess;

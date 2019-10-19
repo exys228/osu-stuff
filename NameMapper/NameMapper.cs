@@ -192,7 +192,7 @@ namespace NameMapper
 			throw new NameMapperException($"Unable to find entry point of given module");
 		}
 
-		private void EnqueueRecurseThread(IMethod cleanMethod, IMethod obfMethod, long recurseLevel = 0) => EnqueueRecurseThread(cleanMethod.ResolveMethodDef(), obfMethod.ResolveMethodDef(), recurseLevel);
+		private void EnqueueRecurseThread(IMethod cleanMethod, IMethod obfMethod, long recurseLevel = 0) => EnqueueRecurseThread(cleanMethod?.ResolveMethodDef(), obfMethod?.ResolveMethodDef(), recurseLevel);
 
 		private void EnqueueRecurseThread(MethodDef cleanMethod, MethodDef obfMethod, long recurseLevel = 0)
 		{
