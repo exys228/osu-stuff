@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace StringFixerMini.CLI
 {
-	class NameMapperCliException : Exception
+	public class NameMapperCliException : Exception
 	{
 		public NameMapperCliException() { }
 

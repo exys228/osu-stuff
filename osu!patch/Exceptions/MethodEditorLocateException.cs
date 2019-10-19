@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace osu_patch.Exceptions
 {
-	class MethodEditorLocateException : Exception
+	public class MethodEditorLocateException : Exception
 	{
 		public MethodEditorLocateException() { }
 

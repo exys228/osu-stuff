@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace osu_patch.Exceptions
 {
-	class ExplorerFindException : Exception
+	public class ExplorerFindException : Exception
 	{
 		public ExplorerFindException() { }
 
