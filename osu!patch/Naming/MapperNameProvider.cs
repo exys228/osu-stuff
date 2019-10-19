@@ -2,6 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
+using DictionaryProcessorLib;
+
 using NameMapper.Exceptions;
 
 using osu_patch.Exceptions;
@@ -34,28 +37,11 @@ namespace osu_patch.Naming
 			return Instance = newInstance;
 		}
 
-		public byte[] Pack()
-		{
-			using (MemoryStream ms = new MemoryStream())
-			{
-				using (BinaryWriter w = new BinaryWriter(ms))
-				{
-					var namePairs = _nameMapper.GetNamePairs();
+		public byte[] Pack() =>
+			DictionaryProcessor.Pack(_nameMapper.GetNamePairs());
 
-					w.Write(namePairs.Count);
-
-					foreach (var kvp in _nameMapper.GetNamePairs())
-					{
-						w.Write(kvp.Key);
-						w.Write(kvp.Value);
-					}
-
-					return ms.ToArray();
-				}
-			}
-		}
-
-		public Dictionary<string, string> GetNamePairs() => _nameMapper.GetNamePairs();
+		public Dictionary<string, string> GetNamePairs() =>
+			_nameMapper.GetNamePairs();
 
 		public string GetName(string name)
 		{
