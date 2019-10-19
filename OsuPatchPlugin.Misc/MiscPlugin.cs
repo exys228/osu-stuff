@@ -235,7 +235,7 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Stsfld,	  // 10
 					OpCodes.Nop       // 11 <-- end of second option
 									  // ?? <-- start of our own
-				});
+				}, false);
 
 				ConfigEditor.InsertAt(ConfigLoc + 11, new[] {
 					Instruction.Create(OpCodes.Ldstr, "noSpec"), // <-- name of our option in config
@@ -257,7 +257,7 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Newobj,   // 5		
 					OpCodes.Call	  // 6
 									  // <-- Insert our option
-				});
+				}, false);
 
 				var OptionCategory = exp["osu.GameModes.Options.OptionCategory"].FindMethodRaw(".ctor").Method;
 				var OptionSection = exp["osu.GameModes.Options.OptionSection"].Type;
@@ -295,7 +295,7 @@ namespace OsuPatchPlugin.Misc
 					Instruction.Create(OpCodes.Ldsfld, noSpec),						 // reference to ConfigManager.noSpec
 					Instruction.Create(OpCodes.Ldnull),
 					Instruction.Create(OpCodes.Newobj, optionCheckbox),				 // add checkbox [new OptionCheckbox("No Spectators", ConfigManager.noSpec, null)]
-					Instruction.Create(OpCodes.Stelem_Ref),							 // end of optionSection
+					Instruction.Create(OpCodes.Stelem_Ref),									// end of optionSection
 					Instruction.Create(OpCodes.Callvirt, set_Children),
 					Instruction.Create(OpCodes.Ldloc_0),
 					Instruction.Create(OpCodes.Stelem_Ref),
@@ -328,13 +328,16 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Stsfld,
 					OpCodes.Newobj,
 					OpCodes.Call,
-				});
+				}, false);	
+
+				var op_Implicit = BindableBool.FindMethod("op_Implicit", MethodSig.CreateStatic(exp.CorLibTypes.Boolean, BindableBool.ToTypeSig()));
 
 				// check if noSpectator option is enabled
-				specEditor.InsertAt(specLoc - 1, new[] {
-					Instruction.Create(OpCodes.Ldarg_0),
-					Instruction.Create(OpCodes.Ldfld, noSpec), 
-					Instruction.Create(OpCodes.Brtrue_S, specEditor[specLoc + 21])
+				specEditor.Insert(new[]
+				{
+					Instruction.Create(OpCodes.Ldsfld, noSpec), 
+					Instruction.Create(OpCodes.Call, op_Implicit), 
+					Instruction.Create(OpCodes.Brtrue, specEditor[specEditor.Count - 1])
 				}); 
 
 				return new PatchResult(patch, PatchStatus.Success);
