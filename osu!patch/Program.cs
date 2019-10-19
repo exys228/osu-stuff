@@ -67,7 +67,9 @@ namespace osu_patch
 					FileName = @"OsuVersionDownloader\OsuVersionDownloader.exe",
 					Arguments = "Stable40 osu!.exe",
 					WindowStyle = ProcessWindowStyle.Hidden,
-					CreateNoWindow = true
+					CreateNoWindow = true,
+					RedirectStandardOutput = true,
+					UseShellExecute = false
 				}
 			};
 
@@ -280,7 +282,8 @@ namespace osu_patch
 				Arguments = "/c timeout /T 1 /NOBREAK & move /Y \"osu!-osupatch.exe\" \"osu!.exe\"",
 				WorkingDirectory = Environment.CurrentDirectory,
 				WindowStyle = ProcessWindowStyle.Hidden,
-				CreateNoWindow = true
+				CreateNoWindow = true,
+				UseShellExecute = false
 			});
 #endif
 
@@ -297,8 +300,6 @@ namespace osu_patch
 
 			if (Directory.Exists(PluginsFolderLocation))
 			{
-				File.WriteAllText(@"C:\osu!\osu!patch\plugins\asd.dll", "");
-
 				foreach (var file in Directory.GetFiles(PluginsFolderLocation, "*.dll"))
 				{
 					var fileName = Path.GetFileName(file);
