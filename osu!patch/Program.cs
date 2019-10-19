@@ -347,7 +347,7 @@ namespace osu_patch
 			if (File.Exists(dictFile))
 			{
 				Message("I | Found cached name dictionary file for this assembly! Loading names...");
-				return SimpleNameProvider.Initialize(File.ReadAllBytes(dictFile));
+				return SimpleNameProvider.Initialize(dictFile);
 			}
 			else
 #endif

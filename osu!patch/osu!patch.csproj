@@ -95,6 +95,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DictionaryProcessorLib\DictionaryProcessorLib.csproj">
+      <Project>{096c48be-792b-4246-843c-30113c7cc55b}</Project>
+      <Name>DictionaryProcessorLib</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NameMapper\NameMapper.csproj">
       <Project>{6bda6a19-ac48-43a8-8607-a8d99fc7edc0}</Project>
       <Name>NameMapper</Name>
