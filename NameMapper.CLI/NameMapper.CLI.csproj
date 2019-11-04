@@ -54,9 +54,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NameMapper\NameMapper.csproj">
+    <ProjectReference Include="..\NameMapperLib\NameMapperLib.csproj">
       <Project>{6bda6a19-ac48-43a8-8607-a8d99fc7edc0}</Project>
-      <Name>NameMapper</Name>
+      <Name>NameMapperLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

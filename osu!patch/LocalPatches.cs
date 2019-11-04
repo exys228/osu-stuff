@@ -9,11 +9,16 @@ using System.Reflection;
 using System.Reflection.Emit;
 using osu_patch.Explorers;
 using osu_patch.Misc;
+using OsuPatchCommon;
 
 using OpCodes = dnlib.DotNet.Emit.OpCodes;
 using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
+using OpCode = dnlib.DotNet.Emit.OpCode;
+
+using OsuP.osu.Online;
+using OsuP.osu;
 
 namespace osu_patch
 {
@@ -23,7 +28,19 @@ namespace osu_patch
 		{
 			new Patch("\"Unsigned executable\" fix", true, (patch, exp) =>
 			{
-				/*	--   REMOVE THIS   \/ \/ \/ \/ \/ \/ \/
+				exp["osu.OsuMain"]["Main"].Editor.Insert(sender =>
+				{
+
+
+					Console.WriteLine(123.456d);
+					var gameBase = (StreamWriter)sender;
+					gameBase.AutoFlush = true;
+					OsuDirect.StartDownload(new OsuDirectDownload(12345, "filename.osz", "title?", true, 54321));
+					Console.ReadLine();
+					Console.WriteLine("Hello World");
+				});
+
+				/*	--   REMOVES THIS   \/ \/ \/ \/ \/ \/ \/
 					if (!AuthenticodeTools.IsTrusted(OsuMain.get_Filename()))
 					{
 						new ErrorDialog(new Exception("Unsigned executable!"), false).ShowDialog();
@@ -71,7 +88,6 @@ namespace osu_patch
 
 				// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
 				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, Program.ObfOsuHash));
-
 				return patch.Result(PatchStatus.Success);
 			}),
 			new Patch("\"Patch on update\" patch", true, (patch, exp) =>

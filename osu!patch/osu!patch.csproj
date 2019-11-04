@@ -57,6 +57,10 @@
     <Reference Include="dnlib, Version=3.2.0.0, Culture=neutral, PublicKeyToken=50e96378b6e77999, processorArchitecture=MSIL">
       <HintPath>..\packages\dnlib.3.2.0\lib\net45\dnlib.dll</HintPath>
     </Reference>
+    <Reference Include="OsuHooks-228bd090, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>etc\OsuHooks-228bd090.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -67,18 +71,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Custom\IOsuPatchPlugin.cs" />
+    <Compile Include="Conversion\BodyConverter.cs" />
+    <Compile Include="Conversion\RawInstruction.cs" />
+    <Compile Include="Plugins\IOsuPatchPlugin.cs" />
     <Compile Include="Exceptions\ExplorerFindException.cs" />
     <Compile Include="Exceptions\MethodEditorLocateException.cs" />
     <Compile Include="Exceptions\NameProviderException.cs" />
     <Compile Include="Explorers\MethodExplorer.cs" />
     <Compile Include="Explorers\TypeExplorer.cs" />
     <Compile Include="Misc\PatchResult.cs" />
-    <Compile Include="Misc\PluginInfo.cs" />
+    <Compile Include="Plugins\PluginInfo.cs" />
     <Compile Include="Naming\INameProvider.cs" />
     <Compile Include="Editors\MethodEditor.cs" />
     <Compile Include="Naming\SimpleNameProvider.cs" />
-    <Compile Include="MD5Helper.cs" />
     <Compile Include="Patch.cs" />
     <Compile Include="Naming\MapperNameProvider.cs" />
     <Compile Include="LocalPatches.cs" />
@@ -99,13 +104,17 @@
       <Project>{096c48be-792b-4246-843c-30113c7cc55b}</Project>
       <Name>DictionaryProcessorLib</Name>
     </ProjectReference>
-    <ProjectReference Include="..\NameMapper\NameMapper.csproj">
+    <ProjectReference Include="..\NameMapperLib\NameMapperLib.csproj">
       <Project>{6bda6a19-ac48-43a8-8607-a8d99fc7edc0}</Project>
-      <Name>NameMapper</Name>
+      <Name>NameMapperLib</Name>
     </ProjectReference>
-    <ProjectReference Include="..\StringFixerMini\StringFixerMini.csproj">
+    <ProjectReference Include="..\OsuPatchCommon\OsuPatchCommon.csproj">
+      <Project>{5ffb5a27-9a29-485a-a740-bc77621fd835}</Project>
+      <Name>OsuPatchCommon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\StringFixerLib\StringFixerLib.csproj">
       <Project>{abe2e2d0-b47b-4e8c-ad0b-f71936adb7ad}</Project>
-      <Name>StringFixerMini</Name>
+      <Name>StringFixerLib</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />
@@ -119,6 +128,7 @@ EXIT /B 0
 ECHO Configuration is $(ConfigurationName)! Removing all stuff from C:\osu!\osu!patch
 DEL /F "C:\osu!\osu!patch\*.dll"
 DEL /F "C:\osu!\osu!patch\osu!patch.exe"
+DEL /F "C:\osu!\osu!patch\clean.exe"
 EXIT /B 0</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
@@ -132,6 +142,7 @@ CD "C:\osu!\"
 IF NOT EXIST "osu!patch\" mkdir "osu!patch\"
 echo Copying $(TargetFileName)
 COPY /Y "$(TargetPath)" "osu!patch\$(TargetFileName)"
+COPY /Y "$(ProjectDir)etc\clean.exe" "osu!patch\clean.exe"
 echo Copying all .dll references
 COPY /Y "$(TargetDir)*.dll" "osu!patch\"
 EXIT /B 0</PostBuildEvent>

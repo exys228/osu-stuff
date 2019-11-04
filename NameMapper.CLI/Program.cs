@@ -6,10 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 using dnlib.DotNet;
 using dnlib.DotNet.Writer;
-using NameMapper.Exceptions;
-using StringFixerMini.CLI;
+using NameMapperLib;
+using NameMapperLib.Exceptions;
 
-namespace NameMapper.CLI
+namespace NameMapperLib.CLI
 {
 	static class Program
 	{
@@ -42,8 +42,8 @@ namespace NameMapper.CLI
 
 			try
 			{
-				_cleanModule = ModuleDefMD.Load(_cleanModulePath);
-				_obfModule = ModuleDefMD.Load(_obfModulePath);
+				_cleanModule = ModuleDefMD.Load(_cleanModulePath, ModuleDef.CreateModuleContext());
+				_obfModule = ModuleDefMD.Load(_obfModulePath, ModuleDef.CreateModuleContext());
 			}
 			catch (Exception e) { return Message("E | An error occurred while trying to load and process modules! Details:\n" + e); }
 
@@ -64,18 +64,14 @@ namespace NameMapper.CLI
 				MetadataOptions = { Flags = DEFAULT_METADATA_FLAGS }
 			});
 
-			Console.ReadKey(true);
+			// Console.ReadKey(true);
 
 			return 0;
 		}
 
-		private static object _msgLock = new object();
-
 		private static int Message(string msg = "", bool newline = true)
 		{
-			lock (_msgLock)
-				Console.Write(msg + (newline ? Environment.NewLine : string.Empty));
-
+			Console.Write(msg + (newline ? Environment.NewLine : string.Empty));
 			return 1;
 		}
 	}

@@ -1,6 +1,6 @@
 ﻿using dnlib.DotNet;
 using osu_patch;
-using osu_patch.Custom;
+using osu_patch.Plugins;
 using osu_patch.Misc;
 using System.Collections.Generic;
 using dnlib.DotNet.Emit;

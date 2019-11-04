@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace StringFixerMini.CLI
+namespace NameMapperLib.CLI
 {
 	public class NameMapperCliException : Exception
 	{

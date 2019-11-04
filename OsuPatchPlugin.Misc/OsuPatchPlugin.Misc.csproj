@@ -65,6 +65,10 @@
       <Project>{5f7f349b-a3d0-4124-9bf3-2e030a43bb3b}</Project>
       <Name>osu!patch</Name>
     </ProjectReference>
+    <ProjectReference Include="..\OsuPatchCommon\OsuPatchCommon.csproj">
+      <Project>{5ffb5a27-9a29-485a-a740-bc77621fd835}</Project>
+      <Name>OsuPatchCommon</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

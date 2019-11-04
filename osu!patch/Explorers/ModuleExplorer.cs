@@ -7,22 +7,22 @@ namespace osu_patch.Explorers
 {
 	public class ModuleExplorer
 	{
-		private Importer _importer;
-
 		public ModuleDefMD Module { get; }
 
 		public INameProvider NameProvider { get; }
 
-		public TypeExplorer this[string name] => Find(name);
-
 		public ICorLibTypes CorLibTypes => Module.CorLibTypes;
 
+		public TypeExplorer this[string name] => Find(name);
+
 		public TypeSig GetCorLibTypeSig(Type type) =>
-			_importer.ImportAsTypeSig(type);
+			Module.ImportAsTypeSig(type);
+
+		public ITypeDefOrRef GetCorLibTypeDefOrRef(Type type) =>
+			Module.Import(type);
 
 		public ModuleExplorer(ModuleDefMD module, INameProvider nameProvider = null)
 		{
-			_importer = new Importer(module);
 			Module = module;
 			NameProvider = nameProvider ?? MapperNameProvider.Instance;
 		}

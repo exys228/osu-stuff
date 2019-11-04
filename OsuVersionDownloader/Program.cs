@@ -5,6 +5,8 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 
+using OsuPatchCommon;
+
 namespace OsuVersionDownloader
 {
 	static class Program

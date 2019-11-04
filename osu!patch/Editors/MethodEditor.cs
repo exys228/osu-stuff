@@ -4,6 +4,16 @@ using osu_patch.Explorers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.InteropServices;
+using System.Text;
+using dnlib.DotNet;
+using osu_patch.Conversion;
+using OsuPatchCommon;
+
+using OpCode = dnlib.DotNet.Emit.OpCode;
+using OpCodes = dnlib.DotNet.Emit.OpCodes;
 
 namespace osu_patch.Editors
 {
@@ -67,7 +77,7 @@ namespace osu_patch.Editors
 
 		#region Locate
 		/// <summary>
-		/// Locate given <see cref="OpCode"/> <paramref name="signature"/> in <see cref="Body"/>.
+		/// Locate given <see cref="dnlib.DotNet.Emit.OpCode"/> <paramref name="signature"/> in <see cref="Body"/>.
 		/// </summary>
 		/// <param name="signature">The <paramref name="signature"/></param>
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
@@ -105,6 +115,8 @@ namespace osu_patch.Editors
 		}
 		#endregion
 		#region Insert
+		// -- Insert an instruction
+
 		/// <summary>
 		/// Insert given <paramref name="instruction"/> in <see cref="Body"/> at <see cref="Position"/>.
 		/// </summary>
@@ -134,6 +146,8 @@ namespace osu_patch.Editors
 					return;
 			}
 		}
+
+		// -- Insert IList<Instruction>
 
 		/// <summary>
 		/// Insert given instruction <paramref name="list"/> at <see cref="Position"/>.
@@ -173,6 +187,36 @@ namespace osu_patch.Editors
 				default:
 					return;
 			}
+		}
+
+		// -- Take Action's body instructions and then Insert them at specified index
+
+		public void Insert(Action<object> action) =>
+			InsertAt(_position, action);
+
+		/// <summary>
+		/// Read <paramref name="action"/>'s body as IL and insert it at specified index
+		/// </summary>
+		public void InsertAt(int index, Action<object> action)
+		{
+			var body = action.GetMethodInfo().GetMethodBody();
+			var bodyArr = body?.GetILAsByteArray();
+
+			var reader = new BodyConverter(action, Parent.Parent.Parent);
+			var asd = reader.ToCilBody();
+
+			//var reader = new MethodBodyReader();
+
+			Console.WriteLine(ByteArrayToString(bodyArr));
+			Console.WriteLine();
+		}
+
+		public static string ByteArrayToString(byte[] ba)
+		{
+			StringBuilder hex = new StringBuilder(ba.Length * 2);
+			foreach (byte b in ba)
+				hex.AppendFormat("{0:x2}", b);
+			return hex.ToString();
 		}
 		#endregion
 		#region Replace
@@ -306,9 +350,28 @@ namespace osu_patch.Editors
 		/// <summary>
 		/// Optimizes <see cref="Instrs"/> branches.
 		/// </summary>
-		public void OptimizeBranches()
-		{
+		public void OptimizeBranches() =>
 			Body.OptimizeBranches();
+
+		public void SimplifyBranches() =>
+			Body.SimplifyBranches();
+	}
+
+	class TestInstructionOperandResolver : IInstructionOperandResolver
+	{
+		public Module _module;
+
+		public Module ModuleToResolveFrom => _module;
+
+		public TestInstructionOperandResolver(Module moduleToResolveFrom) =>
+			_module = moduleToResolveFrom;
+
+		public string ReadUserString(uint token) => // wtf why uint???
+			_module.ResolveString((int)token);
+
+		public IMDTokenProvider ResolveToken(uint token, GenericParamContext gpContext)
+		{
+			throw new NotImplementedException();
 		}
 	}
 

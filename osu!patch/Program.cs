@@ -1,4 +1,4 @@
-﻿//#define DONT_USE_CACHED_DICT
+﻿// #define DONT_USE_CACHED_DICT
 
 using de4dot.code;
 using de4dot.code.AssemblyClient;
@@ -6,17 +6,19 @@ using de4dot.code.deobfuscators;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using dnlib.DotNet.Writer;
-using osu_patch.Custom;
+using osu_patch.Plugins;
 using osu_patch.Explorers;
 using osu_patch.Misc;
 using osu_patch.Naming;
-using StringFixerMini;
+using StringFixerLib;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+
+using OsuPatchCommon;
 
 namespace osu_patch
 {
@@ -65,7 +67,7 @@ namespace osu_patch
 				StartInfo = new ProcessStartInfo
 				{
 					FileName = @"OsuVersionDownloader\OsuVersionDownloader.exe",
-					Arguments = "Stable40 osu!.exe",
+					Arguments = "cuttingedge osu!.exe",
 					WindowStyle = ProcessWindowStyle.Hidden,
 					CreateNoWindow = true,
 					RedirectStandardOutput = true,
@@ -412,69 +414,5 @@ namespace osu_patch
 #else
 		private static int Exit(string msg = "") => Message(msg);
 #endif
-	}
-
-
-
-	public static class OsuPatchExtensions // bunch of helper methods and shortcuts // wanted to make it internal but may be useful in plugins? not sure
-	{
-		/// <summary>
-		/// Not for editing osu's method bodies, use ModuleExplorer->TypeExplorer->MethodExplorer->MethodEditor instead.
-		/// </summary>
-		public static void Insert(this IList<Instruction> originalArray, int index, Instruction[] instructions)
-		{
-			if (instructions == null || instructions.Length == 0)
-				throw new ArgumentException("Instructions array is null or empty.");
-
-			if (index < 0)
-				throw new ArgumentException($"Expected index >= 0, but received {index}.");
-
-			Array.Reverse(instructions);
-
-			foreach (var ins in instructions)
-				originalArray.Insert(index, ins);
-		}
-
-		public static MemberRef CreateMethodRef(this ModuleDef module, bool isStatic, Type type, string methodName, Type returnType, params Type[] argsType)
-		{
-			TypeRefUser typeRef = type.GetTypeRef(module);
-
-			TypeSig returnSig = returnType.GetTypeSig(module);
-			TypeSig[] argsSig = new TypeSig[argsType.Length];
-
-			for (int i = 0; i < argsSig.Length; i++)
-				argsSig[i] = argsType[i].GetTypeSig(module);
-
-			MethodSig methodSig = isStatic ? MethodSig.CreateStatic(returnSig, argsSig) : MethodSig.CreateInstance(returnSig, argsSig);
-
-			MemberRefUser methodRef = new MemberRefUser(module, methodName, methodSig, typeRef);
-
-			return methodRef;
-		}
-
-		public static TypeDef GetTypeDef(this FieldDef field) => field.FieldType.ToTypeDefOrRef().ResolveTypeDef();
-
-		public static TypeSig GetTypeSig(this Type type, ModuleDef module) => type.GetTypeRef(module).ToTypeSig();
-
-		public static TypeRefUser GetTypeRef(this Type type, ModuleDef module)
-		{
-			string nameSpace = null, typeName = type.FullName;
-			int idx = typeName.LastIndexOf('.');
-
-			if (idx >= 0)
-			{
-				nameSpace = typeName.Substring(0, idx);
-				typeName = typeName.Substring(idx + 1);
-			}
-
-			return new TypeRefUser(module, nameSpace, typeName, module.Import(type).DefinitionAssembly.ToAssemblyRef());
-		}
-
-		public static T Clamp<T>(this T val, T min, T max) where T : IComparable<T>
-		{
-			if (val.CompareTo(min) < 0) return min;
-			else if (val.CompareTo(max) > 0) return max;
-			else return val;
-		}
 	}
 }

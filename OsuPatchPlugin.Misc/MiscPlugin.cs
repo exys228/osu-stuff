@@ -1,17 +1,21 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using osu_patch;
-using osu_patch.Custom;
+using osu_patch.Plugins;
 using osu_patch.Misc;
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using osu_patch.Editors;
+using osu_patch.Explorers;
+using OsuPatchCommon;
 
 namespace OsuPatchPlugin.Misc
 {
 	public class MiscPlugin : IOsuPatchPlugin
 	{
+		private const string OSU_BASE_URL = "osu.ppy.sh";
+
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
 			new Patch("Local offset change while paused", true, (patch, exp) =>
@@ -209,6 +213,10 @@ namespace OsuPatchPlugin.Misc
 			}),
 			new Patch("Don't send frames to spectators (NoSpectator)", true, (patch, exp) =>
 			{
+				/*
+				 * exp.Options.Add();
+				 */
+
 				var ConfigManager = exp["osu.Configuration.ConfigManager"].Type;
 
 				var BindableBool = exp["osu.Helpers.BindableBool"].Type;
@@ -398,12 +406,7 @@ namespace OsuPatchPlugin.Misc
 				});
 
 				return new PatchResult(patch, PatchStatus.Success);;
-			})
-					
-			#region Disabled
-			/*
-			private const string OSU_BASE_URL = "osu.ppy.sh";
-
+			}),
 			new Patch("Switch servers to asuki.me", false, (patch, exp) =>
 			{
 				var method = exp["osu.Online.BanchoClient"].FindMethodRaw(".cctor");
@@ -428,8 +431,7 @@ namespace OsuPatchPlugin.Misc
 				method.Editor.Remove(toRemove);
 				method.Editor.Insert(AsukiPatch_CreateServersArrayInitializer(exp, new[]
 				{
-					"ripple.moe",
-					"51.15.223.146"
+					"c.asuki.me"
 				}));
 
 				// TODO replace all ldstrs in all method bodies
@@ -473,24 +475,26 @@ namespace OsuPatchPlugin.Misc
 							}
 						}
 					}
+
+					editor.SimplifyBranches();
+					editor.OptimizeBranches();
 				}
 
 				var cctorEditor = new MethodExplorer(null, urlsType.FindMethod(".cctor")).Editor;
 
 				cctorEditor.InsertAt(cctorEditor.Count - 1, new[]
 				{
-					Instruction.Create(OpCodes.Ldstr, "ripple.moe"),
+					Instruction.Create(OpCodes.Ldstr, "asuki.me"),
 					Instruction.Create(OpCodes.Stsfld, baseUrlField),
 				});
 
 				return new PatchResult(patch, PatchStatus.Success);
 			})
-			*/
-			#endregion
 		};
 
 		public void Load(ModuleDef originalObfOsuModule) { }
 
+		#region AsukiAddon
 		private class IlStringBuilder
 		{
 			public List<Instruction> Instructions = new List<Instruction>();
@@ -525,8 +529,6 @@ namespace OsuPatchPlugin.Misc
 				Add(Instruction.Create(OpCodes.Ldstr, str));
 		}
 
-		#region Disabled
-		/*
 		private static IList<Instruction> AsukiPatch_CreateServersArrayInitializer(ModuleExplorer exp, IList<string> addrList)
 		{
 			var ret = new List<Instruction>();
@@ -572,7 +574,6 @@ namespace OsuPatchPlugin.Misc
 
 			return new List<Instruction> { Instruction.Create(OpCodes.Ldstr, str) };
 		}
-		 */
 		#endregion
 	}
 }

@@ -59,8 +59,10 @@
 			// inputTextBox
 			// 
 			this.inputTextBox.Location = new System.Drawing.Point(12, 77);
+			this.inputTextBox.MaxLength = 999999999;
 			this.inputTextBox.Multiline = true;
 			this.inputTextBox.Name = "inputTextBox";
+			this.inputTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
 			this.inputTextBox.Size = new System.Drawing.Size(776, 333);
 			this.inputTextBox.TabIndex = 2;
 			this.inputTextBox.TextChanged += new System.EventHandler(this.inputTextBox_TextChanged);
@@ -86,8 +88,10 @@
 			// outputTextBox
 			// 
 			this.outputTextBox.Location = new System.Drawing.Point(12, 429);
+			this.outputTextBox.MaxLength = 999999999;
 			this.outputTextBox.Multiline = true;
 			this.outputTextBox.Name = "outputTextBox";
+			this.outputTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
 			this.outputTextBox.Size = new System.Drawing.Size(776, 333);
 			this.outputTextBox.TabIndex = 4;
 			// 

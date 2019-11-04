@@ -2,18 +2,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-
 using DictionaryProcessorLib;
-
-using NameMapper.Exceptions;
-
+using NameMapperLib;
 using osu_patch.Exceptions;
 
 namespace osu_patch.Naming
 {
 	class MapperNameProvider : INameProvider
 	{
-		private NameMapper.NameMapper _nameMapper;
+		private NameMapper _nameMapper;
 
 		public static MapperNameProvider Instance { get; private set; }
 
@@ -26,7 +23,7 @@ namespace osu_patch.Naming
 			var newInstance = new MapperNameProvider
 			{
 				_renameNames = renameNames,
-				_nameMapper = new NameMapper.NameMapper(cleanModule, obfModule, debugOutput, renameNames) { ShowErroredMethods = false }
+				_nameMapper = new NameMapper(cleanModule, obfModule, debugOutput, renameNames) { ShowErroredMethods = false }
 			};
 
 			newInstance._nameMapper.BeginProcessing();
