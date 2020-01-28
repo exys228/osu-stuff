@@ -1,0 +1,36 @@
+Foreground:
+\u0010 - Black
+\u0011 - DarkBlue
+\u0012 - DarkGreen
+\u0013 - DarkCyan
+\u0014 - DarkRed
+\u0015 - DarkMagenta
+\u0016 - DarkYellow
+\u0017 - Gray
+\u0018 - DarkGray
+\u0019 - Blue
+\u001A - Green
+\u001B - Cyan
+\u001C - Red
+\u001D - Magenta
+\u001E - Yellow
+\u001F - White
+
+Background:
+\u0080 - Black
+\u0081 - DarkBlue
+\u0082 - DarkGreen
+\u0083 - DarkCyan
+\u0084 - DarkRed
+\u0085 - DarkMagenta
+\u0086 - DarkYellow
+\u0087 - Gray
+\u0088 - DarkGray
+\u0089 - Blue
+\u008A - Green
+\u008B - Cyan
+\u008C - Red
+\u008D - Magenta
+\u008E - Yellow
+\u008F - White
+

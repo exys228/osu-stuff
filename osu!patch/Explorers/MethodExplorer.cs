@@ -1,14 +1,15 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
-using osu_patch.Naming;
-using System;
 using osu_patch.Editors;
+using System;
 
 namespace osu_patch.Explorers
 {
-	public class MethodExplorer
+	public class MethodExplorer : IExplorerParent
 	{
 		public TypeExplorer Parent { get; }
+
+		public IExplorerParent GetParent() => Parent;
 
 		public MethodDef Method { get; }
 

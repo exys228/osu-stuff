@@ -1,25 +1,22 @@
-﻿using dnlib.DotNet.Emit;
+﻿using dnlib.DotNet;
+using dnlib.DotNet.Emit;
+using osu_patch.Conversion;
 using osu_patch.Exceptions;
 using osu_patch.Explorers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.InteropServices;
-using System.Text;
-using dnlib.DotNet;
-using osu_patch.Conversion;
-using OsuPatchCommon;
-
 using OpCode = dnlib.DotNet.Emit.OpCode;
 using OpCodes = dnlib.DotNet.Emit.OpCodes;
 
 namespace osu_patch.Editors
 {
-	public class MethodEditor
+	public class MethodEditor : IExplorerParent
 	{
 		public MethodExplorer Parent { get; }
+
+		public IExplorerParent GetParent() => Parent;
 
 		public CilBody Body { get; }
 
@@ -77,7 +74,7 @@ namespace osu_patch.Editors
 
 		#region Locate
 		/// <summary>
-		/// Locate given <see cref="dnlib.DotNet.Emit.OpCode"/> <paramref name="signature"/> in <see cref="Body"/>.
+		/// Locate given <see cref="OpCode"/> <paramref name="signature"/> in <see cref="Body"/>.
 		/// </summary>
 		/// <param name="signature">The <paramref name="signature"/></param>
 		/// <param name="setPosition">Update <see cref="Position"/> property or not</param>
@@ -199,25 +196,36 @@ namespace osu_patch.Editors
 		/// </summary>
 		public void InsertAt(int index, Action<object> action)
 		{
-			var body = action.GetMethodInfo().GetMethodBody();
+			throw new NotImplementedException();
+
+			/*var info = action.GetMethodInfo();
+			var body = info.GetMethodBody();
 			var bodyArr = body?.GetILAsByteArray();
 
-			var reader = new BodyConverter(action, Parent.Parent.Parent);
-			var asd = reader.ToCilBody();
-
-			//var reader = new MethodBodyReader();
-
-			Console.WriteLine(ByteArrayToString(bodyArr));
-			Console.WriteLine();
+			var reader = new BodyConverter(action, this.GetRoot());
+			var asd = reader.ToCilBody();*/
 		}
 
-		public static string ByteArrayToString(byte[] ba)
+		// -- Insert call to MethodDef
+
+		public void InsertCall(MethodDef methodDef) =>
+			InsertCallAt(_position, methodDef);
+
+		public void InsertCallAt(int index, MethodDef methodDef)
 		{
-			StringBuilder hex = new StringBuilder(ba.Length * 2);
-			foreach (byte b in ba)
-				hex.AppendFormat("{0:x2}", b);
-			return hex.ToString();
+			var newInstrs = new List<Instruction>();
+
+			if (!methodDef.IsStatic)
+				newInstrs.Add(Instruction.Create(OpCodes.Ldarg_0));
+
+			newInstrs.Add(Instruction.Create(methodDef.IsStatic ? OpCodes.Call : OpCodes.Callvirt, methodDef));
+
+			if(methodDef.ReturnType != methodDef.Module.CorLibTypes.Void)
+				newInstrs.Add(Instruction.Create(OpCodes.Pop));
+
+			InsertAt(index, newInstrs);
 		}
+		// --
 		#endregion
 		#region Replace
 		public void Replace(Instruction ins) =>
@@ -355,24 +363,6 @@ namespace osu_patch.Editors
 
 		public void SimplifyBranches() =>
 			Body.SimplifyBranches();
-	}
-
-	class TestInstructionOperandResolver : IInstructionOperandResolver
-	{
-		public Module _module;
-
-		public Module ModuleToResolveFrom => _module;
-
-		public TestInstructionOperandResolver(Module moduleToResolveFrom) =>
-			_module = moduleToResolveFrom;
-
-		public string ReadUserString(uint token) => // wtf why uint???
-			_module.ResolveString((int)token);
-
-		public IMDTokenProvider ResolveToken(uint token, GenericParamContext gpContext)
-		{
-			throw new NotImplementedException();
-		}
 	}
 
 	public enum InsertMode

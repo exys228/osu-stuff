@@ -5,10 +5,10 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{5F7F349B-A3D0-4124-9BF3-2E030A43BB3B}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <RootNamespace>osu_patch</RootNamespace>
     <AssemblyName>osu!patch</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -45,41 +45,45 @@
     <DefineConstants>TRACE;DEBUG;LIVE_DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>default</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="de4dot.code">
-      <HintPath>lib\de4dot\de4dot.code.dll</HintPath>
-    </Reference>
-    <Reference Include="dnlib, Version=3.2.0.0, Culture=neutral, PublicKeyToken=50e96378b6e77999, processorArchitecture=MSIL">
-      <HintPath>..\packages\dnlib.3.2.0\lib\net45\dnlib.dll</HintPath>
-    </Reference>
-    <Reference Include="OsuHooks-228bd090, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>etc\OsuHooks-228bd090.dll</HintPath>
+      <HintPath>libs\de4dot.code.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Conversion\BodyConverter.cs" />
-    <Compile Include="Conversion\RawInstruction.cs" />
+    <Compile Include="Conversion\MemberConverter.cs" />
+    <Compile Include="Conversion\MethodConverter.cs" />
+    <Compile Include="Explorers\IExplorerParent.cs" />
+    <Compile Include="Lib\DictionaryProcessor\DictionaryProcessor.cs" />
+    <Compile Include="Lib\DictionaryProcessor\DictionaryProcessorException.cs" />
+    <Compile Include="Lib\HookGenerator\HookGenerator.cs" />
+    <Compile Include="Lib\NameMapper\ConcurrentHashSet.cs" />
+    <Compile Include="Lib\NameMapper\Exceptions\NameMapperException.cs" />
+    <Compile Include="Lib\NameMapper\Exceptions\NameMapperProcessingException.cs" />
+    <Compile Include="Lib\NameMapper\Extensions.cs" />
+    <Compile Include="Lib\NameMapper\NamableProcessor.cs" />
+    <Compile Include="Lib\NameMapper\NameMapper.cs" />
+    <Compile Include="Lib\NameMapper\ProcessedManager.cs" />
+    <Compile Include="Common.cs" />
+    <Compile Include="Lib\StringFixer\Harmony.cs" />
+    <Compile Include="Lib\StringFixer\StringFixer.cs" />
+    <Compile Include="Lib\StringFixer\StringFixerException.cs" />
     <Compile Include="Plugins\IOsuPatchPlugin.cs" />
     <Compile Include="Exceptions\ExplorerFindException.cs" />
     <Compile Include="Exceptions\MethodEditorLocateException.cs" />
     <Compile Include="Exceptions\NameProviderException.cs" />
     <Compile Include="Explorers\MethodExplorer.cs" />
     <Compile Include="Explorers\TypeExplorer.cs" />
-    <Compile Include="Misc\PatchResult.cs" />
+    <Compile Include="PatchResult.cs" />
     <Compile Include="Plugins\PluginInfo.cs" />
     <Compile Include="Naming\INameProvider.cs" />
     <Compile Include="Editors\MethodEditor.cs" />
@@ -87,37 +91,22 @@
     <Compile Include="Patch.cs" />
     <Compile Include="Naming\MapperNameProvider.cs" />
     <Compile Include="LocalPatches.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="OsuPatcher.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Explorers\ModuleExplorer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="packages.config">
-      <SubType>Designer</SubType>
-    </None>
+    <Content Include="WriteColoredColors.png" />
+    <Content Include="WriteColoredColors.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DictionaryProcessorLib\DictionaryProcessorLib.csproj">
-      <Project>{096c48be-792b-4246-843c-30113c7cc55b}</Project>
-      <Name>DictionaryProcessorLib</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\NameMapperLib\NameMapperLib.csproj">
-      <Project>{6bda6a19-ac48-43a8-8607-a8d99fc7edc0}</Project>
-      <Name>NameMapperLib</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\OsuPatchCommon\OsuPatchCommon.csproj">
-      <Project>{5ffb5a27-9a29-485a-a740-bc77621fd835}</Project>
-      <Name>OsuPatchCommon</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\StringFixerLib\StringFixerLib.csproj">
-      <Project>{abe2e2d0-b47b-4e8c-ad0b-f71936adb7ad}</Project>
-      <Name>StringFixerLib</Name>
-    </ProjectReference>
+    <PackageReference Include="dnlib">
+      <Version>3.3.1</Version>
+    </PackageReference>
+    <PackageReference Include="Lib.Harmony">
+      <Version>1.2.0.1</Version>
+    </PackageReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO cleanup
@@ -137,7 +126,7 @@ IF /I "$(ConfigurationName)"=="LiveDebug" GOTO move
 EXIT /B 0
 
 :move
-echo Configuration is LiveDebug! Copying all stuff to C:\osu!\osu!patch
+echo Configuration is $(ConfigurationName)! Copying all stuff to C:\osu!\osu!patch
 CD "C:\osu!\"
 IF NOT EXIST "osu!patch\" mkdir "osu!patch\"
 echo Copying $(TargetFileName)

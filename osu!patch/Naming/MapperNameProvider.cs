@@ -1,10 +1,9 @@
 ﻿using dnlib.DotNet;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using DictionaryProcessorLib;
-using NameMapperLib;
 using osu_patch.Exceptions;
+using osu_patch.Lib.DictionaryProcessor;
+using osu_patch.Lib.NameMapper;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace osu_patch.Naming
 {
@@ -18,7 +17,7 @@ namespace osu_patch.Naming
 
 		private MapperNameProvider() { }
 
-		public static MapperNameProvider Initialize(ModuleDefMD cleanModule, ModuleDefMD obfModule, TextWriter debugOutput = null, bool renameNames = false)
+		public static MapperNameProvider Initialize(ModuleDefMD cleanModule, ModuleDefMD obfModule, ConcurrentQueue<string> debugOutput = null, bool renameNames = false)
 		{
 			var newInstance = new MapperNameProvider
 			{

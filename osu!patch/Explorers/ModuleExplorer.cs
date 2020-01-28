@@ -1,11 +1,11 @@
 ﻿using dnlib.DotNet;
+using osu_patch.Exceptions;
 using osu_patch.Naming;
 using System;
-using osu_patch.Exceptions;
 
 namespace osu_patch.Explorers
 {
-	public class ModuleExplorer
+	public class ModuleExplorer : IExplorerParent
 	{
 		public ModuleDefMD Module { get; }
 
@@ -15,11 +15,9 @@ namespace osu_patch.Explorers
 
 		public TypeExplorer this[string name] => Find(name);
 
-		public TypeSig GetCorLibTypeSig(Type type) =>
-			Module.ImportAsTypeSig(type);
+		public TypeSig ImportAsTypeSig(Type type) => Module.ImportAsTypeSig(type);
 
-		public ITypeDefOrRef GetCorLibTypeDefOrRef(Type type) =>
-			Module.Import(type);
+		public ITypeDefOrRef Import(Type type) => Module.Import(type);
 
 		public ModuleExplorer(ModuleDefMD module, INameProvider nameProvider = null)
 		{
@@ -30,10 +28,12 @@ namespace osu_patch.Explorers
 		public TypeExplorer Find(string name)
 		{
 			string result = NameProvider.GetName(name) ?? throw new ExplorerFindException($"Unable to find name: \"{name}\".");
+
 			return new TypeExplorer(this, Module.Find(result, false), NameProvider);
 		}
 
-		public TypeExplorer FindRaw(string name) =>
-			new TypeExplorer(this, Module.Find(name, false), NameProvider);
+		public TypeExplorer FindRaw(string name) => new TypeExplorer(this, Module.Find(name, false), NameProvider);
+
+		public IExplorerParent GetParent() => null;
 	}
 }

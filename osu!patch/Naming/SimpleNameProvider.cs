@@ -1,5 +1,5 @@
-﻿using DictionaryProcessorLib;
-using osu_patch.Exceptions;
+﻿using osu_patch.Exceptions;
+using osu_patch.Lib.DictionaryProcessor;
 using System.Collections.Generic;
 
 namespace osu_patch.Naming
@@ -21,9 +21,7 @@ namespace osu_patch.Naming
 
 		public string GetName(string name)
 		{
-			string obfName;
-
-			if (_names is null || !_names.TryGetValue(name, out obfName))
+			if (_names is null || !_names.TryGetValue(name, out string obfName))
 				throw new NameProviderException("Unable to find name: " + name);
 
 			return obfName;

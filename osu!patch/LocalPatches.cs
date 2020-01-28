@@ -1,24 +1,13 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using osu_patch.Explorers;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using osu_patch.Explorers;
-using osu_patch.Misc;
-using OsuPatchCommon;
-
-using OpCodes = dnlib.DotNet.Emit.OpCodes;
-using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
-using OpCode = dnlib.DotNet.Emit.OpCode;
-
-using OsuP.osu.Online;
-using OsuP.osu;
+using OpCodes = dnlib.DotNet.Emit.OpCodes;
 
 namespace osu_patch
 {
@@ -28,17 +17,55 @@ namespace osu_patch
 		{
 			new Patch("\"Unsigned executable\" fix", true, (patch, exp) =>
 			{
-				exp["osu.OsuMain"]["Main"].Editor.Insert(sender =>
+				/*var meth = exp["osu_common.Helpers.pWebRequest"].InsertMethod(MethodAttributes.Public, delegate (pWebRequest @this)
 				{
+					NotificationManager.ShowMessage("osu!patched");
 
+					try
+					{
+						Console.WriteLine(123.456d);
+						// @this.set_Url("https://exys228.com/");
+						// @this.CreateWebRequest();
+					}
+					catch
+					{
+						Console.WriteLine();
+						throw;
+					}
 
-					Console.WriteLine(123.456d);
-					var gameBase = (StreamWriter)sender;
-					gameBase.AutoFlush = true;
-					OsuDirect.StartDownload(new OsuDirectDownload(12345, "filename.osz", "title?", true, 54321));
-					Console.ReadLine();
-					Console.WriteLine("Hello World");
+					try
+					{
+						// OsuDirect.StartDownload(new OsuDirectDownload(12345, "filename.osz", "title?", true, 54321));
+						Console.ReadLine();
+						Console.WriteLine("Hello World");
+					}
+					finally
+					{
+						Console.WriteLine();
+					}
+
+					switch (Console.ReadKey().Key)
+					{
+						case ConsoleKey.Backspace:
+							Console.WriteLine("1");
+
+							break;
+
+						case ConsoleKey.Tab:
+							Console.WriteLine("1aaaaaaa2");
+
+							break;
+
+						case ConsoleKey.Clear:
+							break;
+					}
+
+					return "";
 				});
+
+				meth.Method.Name = "FUCKhead";
+				var sdasddada = exp["osu_common.Helpers.pWebRequest"];
+				exp["osu_common.Helpers.pWebRequest"]["CreateWebRequest"].Editor.InsertCall(meth.Method);*/
 
 				/*	--   REMOVES THIS   \/ \/ \/ \/ \/ \/ \/
 					if (!AuthenticodeTools.IsTrusted(OsuMain.get_Filename()))
@@ -87,7 +114,7 @@ namespace osu_patch
 				method.Editor.Nop(2);
 
 				// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
-				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, Program.ObfOsuHash));
+				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, OsuPatcher.ObfOsuHash));
 				return patch.Result(PatchStatus.Success);
 			}),
 			new Patch("\"Patch on update\" patch", true, (patch, exp) =>
@@ -197,7 +224,7 @@ namespace osu_patch
 					Instruction.Create(OpCodes.Brtrue, doUpdate[doUpdate.Editor.Position]),
 					Instruction.Create(OpCodes.Ldloc_0),
 					Instruction.Create(OpCodes.Ldfld, fldHash),
-					Instruction.Create(OpCodes.Ldstr, Program.ObfOsuHash),
+					Instruction.Create(OpCodes.Ldstr, OsuPatcher.ObfOsuHash),
 					Instruction.Create(OpCodes.Call, op_Inequality),
 					Instruction.Create(OpCodes.Brfalse, doUpdate[brfalseOcc])
 				});
