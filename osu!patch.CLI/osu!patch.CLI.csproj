@@ -12,6 +12,7 @@
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -58,4 +59,16 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO move
+IF /I "$(ConfigurationName)"=="LiveDebug" GOTO move
+EXIT /B 0
+
+:move
+echo Configuration is $(ConfigurationName)! Copying $(ProjectName) to C:\osu!\osu!patch
+CD "C:\osu!\"
+echo Copying $(TargetFileName)
+COPY /Y "$(TargetPath)" "osu!patch\$(TargetFileName)"
+EXIT /B 0</PostBuildEvent>
+  </PropertyGroup>
 </Project>

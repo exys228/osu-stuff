@@ -176,7 +176,7 @@ namespace OsuVersionDownloader
 
 		private static int Message(string msg)
 		{
-			Console.WriteLine(msg);
+			XConsole.WriteLine(msg);
 			return 1;
 		}
 	}

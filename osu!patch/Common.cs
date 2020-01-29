@@ -193,6 +193,9 @@ namespace osu_patch
 			return 1;
 		}
 
+		public static int WriteLine(object value) =>
+			WriteColored(value.ToString(), true);
+
 		public static int WriteLine(string value) =>
 			WriteColored(value, true);
 
@@ -207,7 +210,6 @@ namespace osu_patch
 
 		private static int WriteColored(string value, bool newLine = false)
 		{
-#if DEBUG
 			var str = string.Empty;
 			var prevForeColor = Console.ForegroundColor;
 			var prevBackColor = Console.BackgroundColor;
@@ -256,17 +258,8 @@ namespace osu_patch
 			Console.BackgroundColor = prevBackColor;
 
 			return 1;
-#else
-			if(newLine)
-				Console.WriteLine(value);
-			else
-				Console.Write(value);
-
-			return 1;
-#endif
 		}
 
-#if DEBUG
 		public static string Fatal(string value) =>
 			"\u0084\u001F[F]\u0001\u0014 " + value + "\u0001";
 
@@ -278,19 +271,6 @@ namespace osu_patch
 
 		public static string Warn(string value) =>
 			"[\u0016W\u0001] " + value;
-#else
-		public static string Fatal(string value) =>
-			"[F] " + value;
-
-		public static string Error(string value) =>
-			"[E] " + value;
-
-		public static string Info(string value) =>
-			"[I] " + value;
-
-		public static string Warn(string value) =>
-			"[W] " + value;
-#endif
 
 		public static int PrintFatal(string value, bool newLine) =>
 			WriteColored(Fatal(value), newLine);

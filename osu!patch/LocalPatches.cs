@@ -5,6 +5,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+
+using osu_common.Updater;
+
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
 using OpCodes = dnlib.DotNet.Emit.OpCodes;
@@ -153,8 +156,32 @@ namespace osu_patch
 					OpCodes.Ldc_I4_1
 				});
 
-				MethodDefUser patchMethod = PatchOnUpdatePatch_CreatePatchMethod(exp);
-				type.Type.Methods.Add(patchMethod);
+				var patchMethod = type.InsertMethod(MethodAttributes.Public | MethodAttributes.Static, () => // Yes.
+				{
+					if (File.Exists("osu!patch\\osu!patch.exe"))
+					{
+						Process process = new Process
+						{
+							StartInfo =
+							{
+								FileName = "osu!patch\\osu!patch.exe",
+								Arguments = "osu!patch\\clean.exe osu!.exe",
+								WorkingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+							}
+						};
+
+						process.Start();
+						process.WaitForExit();
+
+						if (process.ExitCode == 0)
+						{
+							CommonUpdater.SafelyMove("osu!-osupatch.exe", "osu!.exe", 200, 5, true);
+							return;
+						}
+					}
+				});
+
+				patchMethod.Method.Name = "_OsuPatch_Patch";
 
 				var op_Equality = exp.Module.CreateMethodRef(true, typeof(String), "op_Equality", typeof(bool), typeof(string), typeof(string));
 
@@ -164,7 +191,7 @@ namespace osu_patch
 					Instruction.Create(OpCodes.Ldstr, "osu!.exe"),
 					Instruction.Create(OpCodes.Call, op_Equality),
 					Instruction.Create(OpCodes.Brfalse, MoveInPlace[MoveInPlace.Editor.Position]), // at this moment Position is the LAST instruction so that means brtrue to pos AFTER inserted instructions
-					Instruction.Create(OpCodes.Call, patchMethod)
+					Instruction.Create(OpCodes.Call, patchMethod.Method)
 				});
 
 				MoveInPlace.Body.SimplifyBranches();
@@ -539,95 +566,6 @@ namespace osu_patch
 
 			#endregion
 		};
-
-		private static MethodDefUser PatchOnUpdatePatch_CreatePatchMethod(ModuleExplorer exp)
-		{
-			var obfOsuModule = exp.Module;
-
-			MethodImplAttributes implFlags = MethodImplAttributes.IL | MethodImplAttributes.Managed;
-			MethodAttributes flags = MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.ReuseSlot;
-
-			MethodDefUser method = new MethodDefUser("Patch", MethodSig.CreateStatic(obfOsuModule.CorLibTypes.Void), implFlags, flags);
-
-			CilBody body = new CilBody();
-			method.Body = body;
-
-			var FileExists = obfOsuModule.CreateMethodRef(true, typeof(File), "Exists", typeof(bool), typeof(string));
-			var Process = obfOsuModule.CreateMethodRef(false, typeof(Process), ".ctor", typeof(void));
-			var ProcessGetStartInfo = obfOsuModule.CreateMethodRef(false, typeof(Process), "get_StartInfo", typeof(ProcessStartInfo));
-			var ProcessStartInfoSetFileName = obfOsuModule.CreateMethodRef(false, typeof(ProcessStartInfo), "set_FileName", typeof(void), typeof(string));
-			var ProcessStartInfoSetArguments = obfOsuModule.CreateMethodRef(false, typeof(ProcessStartInfo), "set_Arguments", typeof(void), typeof(string));
-			var AssemblyGetExecutingAssembly = obfOsuModule.CreateMethodRef(true, typeof(Assembly), "GetExecutingAssembly", typeof(Assembly));
-			var AssemblyGetLocation = obfOsuModule.CreateMethodRef(false, typeof(Assembly), "get_Location", typeof(string));
-			var PathGetDirectoryName = obfOsuModule.CreateMethodRef(true, typeof(Path), "GetDirectoryName", typeof(string), typeof(string));
-			var ProcessStartInfoSetWorkingDirectory = obfOsuModule.CreateMethodRef(false, typeof(ProcessStartInfo), "set_WorkingDirectory", typeof(void), typeof(string));
-			var ProcessStart = obfOsuModule.CreateMethodRef(false, typeof(Process), "Start", typeof(bool));
-			var ProcessWaitForExit = obfOsuModule.CreateMethodRef(false, typeof(Process), "WaitForExit", typeof(void));
-			var ProcessGetExitCode = obfOsuModule.CreateMethodRef(false, typeof(Process), "get_ExitCode", typeof(int));
-			var FileCreate = obfOsuModule.CreateMethodRef(true, typeof(File), "Create", typeof(FileStream), typeof(string));
-			var StreamClose = obfOsuModule.CreateMethodRef(false, typeof(Stream), "Close", typeof(void));
-			// var FileDelete = Program.ObfOsuModule.CreateMethodRef(true, typeof(File), "Delete", typeof(void), typeof(string));
-			// var FileMove = Program.ObfOsuModule.CreateMethodRef(true, typeof(File), "Move", typeof(void), typeof(string), typeof(string));
-
-			var SafelyMove = exp["osu_common.Updater.CommonUpdater"]["SafelyMove"].Method;
-
-			if (SafelyMove == null)
-				return null;
-
-			Instruction[] instructions = // i honestly don't know what the fuck is this because i didn't write original code down
-			{
-				/* 0 */ Instruction.Create(OpCodes.Ldstr, "osu!patch\\osu!patch.exe"),
-				/* 1 */ Instruction.Create(OpCodes.Call, FileExists),
-				/* 2 */ Instruction.Create(OpCodes.Nop), // !!! BRFALSE.S
-				/* 3 */ Instruction.Create(OpCodes.Newobj, Process),
-				/* 4 */ Instruction.Create(OpCodes.Dup),
-				/* 5 */ Instruction.Create(OpCodes.Callvirt, ProcessGetStartInfo),
-				/* 6 */ Instruction.Create(OpCodes.Ldstr, "osu!patch\\osu!patch.exe"),
-				/* 7 */ Instruction.Create(OpCodes.Callvirt, ProcessStartInfoSetFileName),
-				/* 8 */ Instruction.Create(OpCodes.Dup),
-				/* 9 */ Instruction.Create(OpCodes.Callvirt, ProcessGetStartInfo),
-				/* 10 */ Instruction.Create(OpCodes.Ldstr, "osu!patch\\clean.exe osu!.exe"),
-				/* 11 */ Instruction.Create(OpCodes.Callvirt, ProcessStartInfoSetArguments),
-				/* 12 */ Instruction.Create(OpCodes.Dup),
-				/* 13 */ Instruction.Create(OpCodes.Callvirt, ProcessGetStartInfo),
-
-				/* 14 */ Instruction.Create(OpCodes.Call, AssemblyGetExecutingAssembly),
-				/* 15 */ Instruction.Create(OpCodes.Callvirt, AssemblyGetLocation),
-				/* 16 */ Instruction.Create(OpCodes.Call, PathGetDirectoryName),
-				/* 17 */ Instruction.Create(OpCodes.Callvirt, ProcessStartInfoSetWorkingDirectory),
-
-				/* 18 */ Instruction.Create(OpCodes.Dup),
-				/* 19 */ Instruction.Create(OpCodes.Callvirt, ProcessStart),
-				/* 20 */ Instruction.Create(OpCodes.Pop),
-				/* 21 */ Instruction.Create(OpCodes.Dup),
-				/* 22 */ Instruction.Create(OpCodes.Callvirt, ProcessWaitForExit),
-				/* 23 */ Instruction.Create(OpCodes.Callvirt, ProcessGetExitCode),
-				/* 24 */ Instruction.Create(OpCodes.Nop), // !!! BRTRUE.S
-				/* 25 */ Instruction.Create(OpCodes.Ldstr, "osu!-osupatch.exe"),
-				/* 26 */ Instruction.Create(OpCodes.Ldstr, "osu!.exe"),
-				/* 27 */ Instruction.Create(OpCodes.Ldc_I4, 200),
-				/* 28 */ Instruction.Create(OpCodes.Ldc_I4_5),
-				/* 29 */ Instruction.Create(OpCodes.Ldc_I4_1),
-				/* 30 */ Instruction.Create(OpCodes.Call, SafelyMove),
-				/* 31 */ Instruction.Create(OpCodes.Pop),
-				/* 32 */ Instruction.Create(OpCodes.Ret),
-				/* 33 */ Instruction.Create(OpCodes.Ldstr, ".osu!patch_failed"),
-				/* 34 */ Instruction.Create(OpCodes.Call, FileCreate),
-				/* 35 */ Instruction.Create(OpCodes.Callvirt, StreamClose),
-				/* 36 */ Instruction.Create(OpCodes.Ret)
-			};
-
-			instructions[2] = Instruction.Create(OpCodes.Brfalse_S, instructions[36]);
-			instructions[24] = Instruction.Create(OpCodes.Brtrue_S, instructions[33]);
-
-			body.Instructions.Insert(0, instructions);
-
-			body.MaxStack = 5;
-
-			body.OptimizeBranches();
-
-			return method;
-		}
 
 		#region Mentally disabled
 		/*

@@ -203,8 +203,8 @@ namespace osu_patch.Lib.NameMapper
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex);
-				Console.ReadKey();
+				Message(XConsole.Error(ex.ToString()));
+				Console.ReadKey(); // because debug
 			}
 			finally
 			{

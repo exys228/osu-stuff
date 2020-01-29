@@ -1,5 +1,5 @@
 ﻿// #define DONT_USE_CACHED_DICT
-#define CORE_PATCHES_ONLY
+// #define CORE_PATCHES_ONLY
 
 using de4dot.code;
 using de4dot.code.AssemblyClient;

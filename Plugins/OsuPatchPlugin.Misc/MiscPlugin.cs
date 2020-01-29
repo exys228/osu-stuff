@@ -1,4 +1,6 @@
-﻿using dnlib.DotNet;
+﻿#define DISABLE_PLUGIN
+
+using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using osu_patch;
 using osu_patch.Editors;
@@ -14,6 +16,10 @@ namespace OsuPatchPlugin.Misc
 	{
 		private const string OSU_BASE_URL = "osu.ppy.sh";
 
+
+#if DISABLE_PLUGIN
+		public IEnumerable<Patch> GetPatches() => new List<Patch>();
+#else
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
 			new Patch("Local offset change while paused", true, (patch, exp) =>
@@ -469,7 +475,7 @@ namespace OsuPatchPlugin.Misc
 							if (str.Contains(OSU_BASE_URL))
 							{
 								editor.Replace(i, AsukiPatch_UniversalizeOsuURL(exp, str, baseUrlField));
-								// Console.WriteLine($"{meth.DeclaringType.Name}::{meth.Name}");
+								// XConsole.WriteLine($"{meth.DeclaringType.Name}::{meth.Name}");
 							}
 						}
 					}
@@ -489,10 +495,10 @@ namespace OsuPatchPlugin.Misc
 				return new PatchResult(patch, PatchStatus.Success);
 			})
 		};
-
+#endif
 		public void Load(ModuleDef originalObfOsuModule) { }
 
-		#region AsukiAddon
+#region AsukiAddon
 		private class IlStringBuilder
 		{
 			public List<Instruction> Instructions = new List<Instruction>();
@@ -572,6 +578,6 @@ namespace OsuPatchPlugin.Misc
 
 			return new List<Instruction> { Instruction.Create(OpCodes.Ldstr, str) };
 		}
-		#endregion
+#endregion
 	}
 }
