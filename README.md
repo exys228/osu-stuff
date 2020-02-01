@@ -13,8 +13,8 @@ Both assemblies have to be opcode-identical (mostly), and you **WANT** to deobfu
 **TL;DR**
 Clean osu! assembly recipe:
 1. Download latest osu! assembly which names are encoded with `recorderinthesandybridge` key (hint: [`target=3097`](https://osu.ppy.sh/web/check-updates.php?action=path&stream=Stable&target=3097)).
-2. Deobfuscate control flow using `de4dot --only-cflow-deob osu!.exe`.
-3. Decrypt strings using either de4dot, HoLLy-HaCKeR's EazFixer or **StringFixerLib.CLI**.
+2. Deobfuscate control flow using [`de4dot`](https://github.com/0xd4d/de4dot)`--only-cflow-deob osu!.exe`. <!-- SHITCODING EVEN IN README EXCUSE ME WHAT THE FUCK -->
+3. Decrypt strings using either [de4dot](https://github.com/0xd4d/de4dot), [HoLLy-HaCKeR](https://github.com/HoLLy-HaCKeR)'s [EazFixer](https://github.com/HoLLy-HaCKeR/EazFixer) or **StringFixerLib.CLI**.
 4. Decrypt names using HoLLy-HaCKeR's [osu-decoder](https://github.com/HoLLy-HaCKeR/osu-decoder). I used my own program, `clean.exe` should be somewhere in this repo tho.
 5. Done!
 
