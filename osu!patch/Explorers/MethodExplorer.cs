@@ -19,17 +19,8 @@ namespace osu_patch.Explorers
 
 		public Instruction this[int index]
 		{
-			get => Body.Instructions[index];
-			set
-			{
-				if (index < 0)
-					throw new IndexOutOfRangeException("Index is lower than zero!");
-
-				if (index >= Body.Instructions.Count)
-					throw new IndexOutOfRangeException("Index is outside the bounds of array.");
-
-				Body.Instructions[index] = value;
-			}
+			get => Editor[index];
+			set => Editor[index] = value;
 		}
 
 		public MethodExplorer(TypeExplorer parent, MethodDef method)

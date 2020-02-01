@@ -107,7 +107,7 @@ namespace osu_patch
 
 			if (args.Length < 2)
 				return Exit("osu!patch - osu! assembly patcher based on NameMapper\n" +
-							   "by exys, 2019\n" +
+							   "by exys, 2019 - 2020\n" +
 							   "\n" +
 							   "Usage:\n" +
 							   "osu!patch [clean module] [obfuscated module]");
@@ -140,7 +140,8 @@ namespace osu_patch
 
 			try
 			{
-				CleanControlFlow(); // Cleaning control flow
+				XConsole.PrintInfo("Cleaning control flow of obfuscated assembly");
+				CleanControlFlow();
 			}
 			catch (Exception ex) { return XConsole.PrintFatal("Unable to deobfuscate control flow of obfuscated assembly! Details:\n" + ex); }
 
@@ -389,8 +390,6 @@ namespace osu_patch
 
 		private static void CleanControlFlow()
 		{
-			XConsole.PrintInfo("Cleaning control flow of obfuscated assembly");
-
 			Logger.Instance.MaxLoggerEvent = 0;
 
 			var options = new ObfuscatedFile.Options
@@ -417,7 +416,7 @@ namespace osu_patch
 			_obfOsuModule = obfFile.ModuleDefMD;
 		}
 
-		// --- Misc methods
+		// -- Misc methods
 
 		public static ModuleExplorer GetRoot(this IExplorerParent explorerParent)
 		{

@@ -20,7 +20,7 @@ namespace osu_patch.Conversion
 		private Module _patchModule;
 		private MemberConverter _memberConverter;
 
-		private bool _decreaseLdArgRank;
+		private bool _decreaseLdargRank;
 
 		public CilBody Result { get; set; }
 
@@ -102,7 +102,7 @@ namespace osu_patch.Conversion
 			_patchModule = del.Method.Module;
 			_memberConverter = memberConverter;
 
-			_decreaseLdArgRank = (del.Method.Attributes & System.Reflection.MethodAttributes.Static) == 0; // not static
+			_decreaseLdargRank = (del.Method.Attributes & System.Reflection.MethodAttributes.Static) == 0; // not static
 
 			Result = null;
 		}
@@ -237,7 +237,7 @@ namespace osu_patch.Conversion
 
 					case OperandType.InlineSwitch:
 						int count = ReadInt32();
-						int finalPos = _position + count * 4;
+						int finalPos = _position + count * sizeof(int);
 						uint[] cases = new uint[count];
 
 						for (uint i = 0; i < count; i++)
@@ -274,7 +274,7 @@ namespace osu_patch.Conversion
 						break;
 				}
 
-				if (_decreaseLdArgRank)
+				if (_decreaseLdargRank)
 					RankDownIfLdarg(newInstr);
 
 				newInstrs.Add(newInstr.Offset, newInstr);
@@ -336,6 +336,7 @@ namespace osu_patch.Conversion
 						ins.OpCode = isLdarga ? OpCodes.Ldarga : OpCodes.Ldarg;
 						ins.Operand = newValue;
 					}
+
 					break;
 				}
 			}

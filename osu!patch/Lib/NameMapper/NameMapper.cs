@@ -73,9 +73,9 @@ namespace osu_patch.Lib.NameMapper
 
 				//	 -- 
 
-				//	 -- 1. Getting unique methods from both obf and clean types as two separate lists (NameProcessed, but not FullyProcessed)
+				//	 -- 1. Getting unique methods from both obf and clean types as two separate lists (NameProcessed, but not IsFullyProcessed)
 				//	 -- 2. Comparing unique obf methods to unique clean methods, recursing same methods
-				//	 -- 3. FullyProcessed = true
+				//	 -- 3. IsFullyProcessed = true
 
 				Message(XConsole.Info("Recursing unique methods."));
 
@@ -87,7 +87,7 @@ namespace osu_patch.Lib.NameMapper
 				{
 					foreach (var item in procMan.Types)
 					{
-						if (item.FullyProcessed)
+						if (item.IsFullyProcessed)
 							continue;
 
 						var cleanMethods = item.Clean.ScopeType.ResolveTypeDef()?.Methods.Where(x => !x.IsNameObfuscated()).ToList();
@@ -107,7 +107,7 @@ namespace osu_patch.Lib.NameMapper
 								StartRecurseThread(cleanMethod, obfMethod);
 						}
 
-						item.FullyProcessed = true;
+						item.IsFullyProcessed = true;
 					}
 
 					WaitMakeSure();
@@ -189,7 +189,7 @@ namespace osu_patch.Lib.NameMapper
 				if (_overallErroredMethods > 0)
 					Message(XConsole.Warn($"Not all methods are processed! {_overallErroredMethods} left behind."));
 
-				Message(XConsole.Info($"Overall known classes: {procMan.Types.Count}; Fully processed classes: {procMan.Types.Count(x => x.FullyProcessed)}"));
+				Message(XConsole.Info($"Overall known classes: {procMan.Types.Count}; Fully processed classes: {procMan.Types.Count(x => x.IsFullyProcessed)}"));
 
 				var processedTypesCount = procMan.Types.Count;
 				var allTypesCount = ObfModule.CountTypes(x => !x.IsNameObfuscated());

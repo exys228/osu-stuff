@@ -2,13 +2,20 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
+using TypePair = osu_patch.Lib.NameMapper.PairInfo<dnlib.DotNet.IType>;
+using MethodPair = osu_patch.Lib.NameMapper.PairInfo<dnlib.DotNet.IMethod>;
+using FieldPair = osu_patch.Lib.NameMapper.PairInfo<dnlib.DotNet.FieldDef>;
+
 namespace osu_patch.Lib.NameMapper
 {
 	class ProcessedManager
 	{
-		public ConcurrentBag<PairInfo<IType>> Types { get; } = new ConcurrentBag<PairInfo<IType>>();
-		public ConcurrentBag<PairInfo<IMethod>> Methods { get; } = new ConcurrentBag<PairInfo<IMethod>>();
-		public ConcurrentBag<PairInfo<FieldDef>> Fields { get; } = new ConcurrentBag<PairInfo<FieldDef>>();
+		public ConcurrentBag<TypePair> Types { get; } = new ConcurrentBag<TypePair>();
+
+		public ConcurrentBag<MethodPair> Methods { get; } = new ConcurrentBag<MethodPair>();
+
+		public ConcurrentBag<FieldPair> Fields { get; } = new ConcurrentBag<FieldPair>();
+
 		public ConcurrentHashSet<MDToken> MDTokens { get; } = new ConcurrentHashSet<MDToken>();
 
 		public bool Contains(IMDTokenProvider obfMdTokenProvider) =>
@@ -18,7 +25,7 @@ namespace osu_patch.Lib.NameMapper
 		{
 			if (!MDTokens.Contains(obfType.MDToken))
 			{
-				Types.Add(new PairInfo<IType>(cleanType, obfType, fullyProcessed));
+				Types.Add(new TypePair(cleanType, obfType, fullyProcessed));
 				MDTokens.Add(obfType.MDToken);
 			}
 		}
@@ -27,7 +34,7 @@ namespace osu_patch.Lib.NameMapper
 		{
 			if (!MDTokens.Contains(obfMethod.MDToken))
 			{
-				Methods.Add(new PairInfo<IMethod>(cleanMethod, obfMethod));
+				Methods.Add(new MethodPair(cleanMethod, obfMethod));
 				MDTokens.Add(obfMethod.MDToken);
 			}
 		}
@@ -36,24 +43,24 @@ namespace osu_patch.Lib.NameMapper
 		{
 			if (!MDTokens.Contains(obfField.MDToken))
 			{
-				Fields.Add(new PairInfo<FieldDef>(cleanField, obfField));
+				Fields.Add(new FieldPair(cleanField, obfField));
 				MDTokens.Add(obfField.MDToken);
 			}
 		}
 	}
 
-	[DebuggerDisplay("{Clean.FullName}   ||   {Obfuscated.FullName}")]
+	[DebuggerDisplay("{Clean.FullName}   ||   {Obfuscated.FullName}")] // BUG: will be fkd up for methods cuz return types and args are included in FullName
 	class PairInfo<T> where T : IFullName, IMDTokenProvider
 	{
-		public T Clean;
-		public T Obfuscated;
-		public bool FullyProcessed;
+		public readonly T Clean;
+		public readonly T Obfuscated;
+		public bool IsFullyProcessed;
 
-		public PairInfo(T clean, T obf, bool fullyProcessed = false)
+		public PairInfo(T clean, T obf, bool isFullyProcessed = false)
 		{
 			Clean = clean;
 			Obfuscated = obf;
-			FullyProcessed = fullyProcessed;
+			IsFullyProcessed = isFullyProcessed;
 		}
 	}
 }

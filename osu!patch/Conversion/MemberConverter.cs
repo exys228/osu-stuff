@@ -14,13 +14,13 @@ namespace osu_patch.Conversion
 		public MemberConverter(ModuleExplorer moduleExplorer) =>
 			_moduleExplorer = moduleExplorer;
 
-		public MethodSig MethodInfoToMethodSig(MethodInfo methInfo, bool skipFirst = false) =>
-			MethodInfoToMethodSig(methInfo.ReturnType, methInfo, skipFirst);
+		public MethodSig MethodInfoToMethodSig(MethodInfo methInfo, bool hasThis = false) =>
+			MethodInfoToMethodSig(methInfo.ReturnType, methInfo, hasThis);
 
-		public MethodSig MethodInfoToMethodSig(Type retType, MethodBase methBase, bool skipFirst = false)
+		public MethodSig MethodInfoToMethodSig(Type retType, MethodBase methBase, bool hasThis = false)
 		{
 			var genParamCount = methBase.ContainsGenericParameters ? methBase.GetGenericArguments().Length : 0;
-			var newParams = methBase.GetParameters().Skip(skipFirst ? 1 : 0).Select(x => ImportAsOsuModuleType(x.ParameterType).ToTypeSig()).ToList();
+			var newParams = methBase.GetParameters().Skip(hasThis ? 1 : 0).Select(x => ImportAsOsuModuleType(x.ParameterType).ToTypeSig()).ToList();
 			return new MethodSig(ReflectionToDnLibConvention(methBase.CallingConvention), (uint)genParamCount, ImportAsOsuModuleType(retType).ToTypeSig(), newParams);
 		}
 
@@ -35,18 +35,21 @@ namespace osu_patch.Conversion
 			{
 				case MemberTypes.Field:
 					return importedType.IsSystemType()
-						? (IMemberRef)_moduleExplorer.Module.Import((MethodBase)memberInfo)
+						? (IMemberRef)_moduleExplorer.Module.Import((FieldInfo)memberInfo)
 						: importedType.FindField(_moduleExplorer.NameProvider.GetName(memberInfo.Name));
 
 				case MemberTypes.Constructor:
+					if (importedType.IsSystemType())
+						return _moduleExplorer.Module.Import((MethodBase)memberInfo);
+
 					var ctorInfo = (ConstructorInfo)memberInfo;
 					return importedType.FindMethod(ctorInfo.Name, MethodInfoToMethodSig(typeof(void), ctorInfo));
 
 				case MemberTypes.Method:
-					var methodInfo = (MethodInfo)memberInfo;
-
 					if (importedType.IsSystemType())
 						return _moduleExplorer.Module.Import((MethodBase)memberInfo);
+
+					var methodInfo = (MethodInfo)memberInfo;
 
 					var name = methodInfo.IsSpecialName ? methodInfo.Name : _moduleExplorer.NameProvider.GetName(methodInfo.Name);
 					return importedType.FindMethod(name, MethodInfoToMethodSig(methodInfo));
