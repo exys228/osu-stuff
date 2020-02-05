@@ -7,12 +7,7 @@ using System.Threading.Tasks;
 using dnlib.DotNet;
 using dnlib.DotNet.Writer;
 
-using osu_patch;
-using osu_patch.Lib.StringFixer;
-
-using StringFixerLib;
-
-namespace StringFixerLib.CLI
+namespace osu_patch.Lib.StringFixer.CLI
 {
 	static class Program
 	{
@@ -30,11 +25,11 @@ namespace StringFixerLib.CLI
 		public static int Main(string[] args)
 		{
 			if (args.Length < 1)
-				return XConsole.WriteLine("StringFixerMini.CLI\n" +
+				return XConsole.WriteLine("StringFixer.CLI\n" +
 							   "by exys, 2019\n" +
 							   "\n" +
 							   "Usage:\n" +
-							   "StringFixerMini.CLI [module]");
+							   "StringFixer.CLI [module]");
 
 			if (!File.Exists(_modulePath = Path.GetFullPath(args[0])))
 				return XConsole.PrintError("Specified module path does not exist");

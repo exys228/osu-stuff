@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{690C9296-DDE4-402A-A303-A5764131550B}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>HookManager.CLI</RootNamespace>
-    <AssemblyName>HookManager.CLI</AssemblyName>
+    <RootNamespace>osu_patch.Lib.HookGenerator.CLI</RootNamespace>
+    <AssemblyName>HookGenerator.CLI</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

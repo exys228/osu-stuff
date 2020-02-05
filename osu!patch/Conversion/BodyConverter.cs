@@ -3,6 +3,7 @@ using dnlib.DotNet.Emit;
 using dnlib.DotNet.MD;
 using osu_patch.Explorers;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -326,17 +327,15 @@ namespace osu_patch.Conversion
 					if (newValue < 0)
 						throw new Exception("Can't rank down below zero!");
 
-					if (newValue <= byte.MaxValue)
-					{
-						ins.OpCode = isLdarga ? OpCodes.Ldarga_S : OpCodes.Ldarg_S;
-						ins.Operand = (byte)newValue;
-					}
-					else
-					{
-						ins.OpCode = isLdarga ? OpCodes.Ldarga : OpCodes.Ldarg;
-						ins.Operand = newValue;
-					}
+					Instruction newIns;
 
+					if(isLdarga)
+						newIns = Misc.CreateLdarga((ushort)newValue);
+					else
+						newIns = Misc.CreateLdarg((ushort)newValue);
+					
+					ins.OpCode = newIns.OpCode;
+					ins.Operand = newIns.Operand;
 					break;
 				}
 			}

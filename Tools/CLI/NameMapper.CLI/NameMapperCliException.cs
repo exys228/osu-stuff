@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace NameMapperLib.CLI
+namespace osu_patch.Lib.NameMapper.CLI
 {
 	public class NameMapperCliException : Exception
 	{

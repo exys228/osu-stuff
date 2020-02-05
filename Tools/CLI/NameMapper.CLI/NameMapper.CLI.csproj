@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{D0D224E0-E9F9-43D3-BAF8-45C79E6F92DB}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>NameMapper.CLI</RootNamespace>
+    <RootNamespace>osu_patch.Lib.NameMapper.CLI</RootNamespace>
     <AssemblyName>NameMapper.CLI</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

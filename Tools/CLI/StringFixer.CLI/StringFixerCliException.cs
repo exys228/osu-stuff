@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace StringFixerLib.CLI
+namespace osu_patch.Lib.StringFixer.CLI
 {
 	public class StringFixerCliException : Exception
 	{

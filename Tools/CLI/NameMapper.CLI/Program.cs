@@ -1,13 +1,11 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Writer;
-using osu_patch;
-using osu_patch.Lib.NameMapper;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
 
-namespace NameMapperLib.CLI
+namespace osu_patch.Lib.NameMapper.CLI
 {
 	static class Program
 	{
@@ -49,6 +47,7 @@ namespace NameMapperLib.CLI
 
 			var fancyOut = new ConcurrentQueue<string>();
 
+			// ReSharper disable once FunctionNeverReturns
 			ThreadPool.QueueUserWorkItem(state =>
 			{
 				while (true)

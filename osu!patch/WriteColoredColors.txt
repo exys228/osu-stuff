@@ -1,3 +1,5 @@
+\u0001 - Reset to default colors
+
 Foreground:
 \u0010 - Black
 \u0011 - DarkBlue

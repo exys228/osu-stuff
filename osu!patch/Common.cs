@@ -157,34 +157,8 @@ namespace osu_patch
 		}
 	}
 
-	public static class HookAssemblyCache
-	{
-		private static HashSet<string> _guidCache = new HashSet<string>();
-
-		public static bool IsHookAssembly(Assembly ass)
-		{
-			var guid = ass.GetAssemblyGuid();
-
-			if (_guidCache.Contains(guid))
-				return true;
-
-			if (ass.CustomAttributes.Any(x => x.AttributeType.Name == "OsuHookAssemblyAttribute"))
-			{
-				_guidCache.Add(guid);
-				return true;
-			}
-
-			return false;
-		}
-	}
-
 	public static class XConsole
 	{
-		static XConsole()
-		{
-
-		}
-
 		public const string PAD = "    "; // four spaces
 
 		public static int WriteLine()

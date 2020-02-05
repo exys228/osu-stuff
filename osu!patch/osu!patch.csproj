@@ -110,6 +110,7 @@
       <Version>1.2.0.1</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO cleanup

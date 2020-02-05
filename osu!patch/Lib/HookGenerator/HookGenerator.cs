@@ -4,6 +4,7 @@ using dnlib.DotNet.MD;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using TypeAttributes = dnlib.DotNet.TypeAttributes;
@@ -12,6 +13,8 @@ namespace osu_patch.Lib.HookGenerator
 {
 	public class HookGenerator
 	{
+		public const string IDENTIFICATION_ATTRIBUTE_NAME = "OsuHookAssemblyAttribute";
+
 		private string _assemblyName;
 
 		private ModuleDef _originalModule;
@@ -44,7 +47,7 @@ namespace osu_patch.Lib.HookGenerator
 
 			// -- Add custom attribute for identifying
 
-			var attr = new TypeDefUser("OsuHookAssemblyAttribute", _hookModule.Import(typeof(Attribute)));
+			var attr = new TypeDefUser(IDENTIFICATION_ATTRIBUTE_NAME, _hookModule.Import(typeof(Attribute)));
 			var attrCtor = new MethodDefUser(".ctor", MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 			attrCtor.Body = new CilBody();
 			attrCtor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
@@ -59,6 +62,7 @@ namespace osu_patch.Lib.HookGenerator
 				CreateRawTree(typeDef);
 
 			PopulateEverythingWithData();
+
 			return _hookModule;
 		}
 
@@ -207,14 +211,10 @@ namespace osu_patch.Lib.HookGenerator
 			{
 				var hookType = FindHookTypeDefRaw(originalGenSig.ScopeType);
 				var hookArgSigList = new List<TypeSig>();
+				var genArgs = originalGenSig.GenericArguments;
 
-				int idx = 0;
-
-				foreach (var originalArg in originalGenSig.GenericArguments)
-				{
-					hookArgSigList.Add(originalArg.ElementType == ElementType.Var ? new GenericVar(idx) : FindHookTypeSig(originalArg));
-					idx++;
-				}
+				for (int i = 0; i < genArgs.Count; i++)
+					hookArgSigList.Add(genArgs[i].ElementType == ElementType.Var ? new GenericVar(i) : FindHookTypeSig(genArgs[i]));
 
 				return new GenericInstSig(new ClassSig(hookType), hookArgSigList);
 			}
@@ -227,7 +227,7 @@ namespace osu_patch.Lib.HookGenerator
 
 		private ITypeDefOrRef FindHookTypeDefRaw(ITypeDefOrRef originalDef)
 		{
-			if (originalDef.IsSystemType() || originalDef.DefinitionAssembly.FullName != _originalModule.Assembly.FullName) // System types and external dependencies (OpenTK, etc)
+			if (originalDef.DefinitionAssembly.FullName != _originalModule.Assembly.FullName) // System types and external dependencies (OpenTK, etc)
 				return _hookModule.Import(originalDef).ScopeType;
 
 			if (_processedTypes.TryGetValue(originalDef.ScopeType.FullName, out var defInfo)) // Internal hook type (already added)
@@ -251,7 +251,7 @@ namespace osu_patch.Lib.HookGenerator
 		}
 	}
 
-	static class HookAssGenExtensions
+	static class HookGeneratorExtensions
 	{
 		public static TypeAttributes ConvertToHookAttributes(this TypeAttributes originalAttrs)
 		{

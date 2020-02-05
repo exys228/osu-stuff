@@ -1,10 +1,8 @@
 ﻿using dnlib.DotNet;
-using osu_patch;
-using osu_patch.Lib.HookGenerator;
 using System;
 using System.IO;
 
-namespace HookManager.CLI
+namespace osu_patch.Lib.HookGenerator.CLI
 {
 	public static class Program
 	{
@@ -13,11 +11,11 @@ namespace HookManager.CLI
 		public static int Main(string[] args)
 		{
 			if (args.Length < 1)
-				return XConsole.PrintInfo("HookAssemblyGenerator - generate API-like osu! methods access assembly\n"
+				return XConsole.PrintInfo("HookGenerator.CLI - generate API-like osu! methods access assembly\n"
 								+ "by exys, 2019\n"
 								+ "\n"
 								+ "Usage:\n"
-								+ "HookAssemblyGenerator [clean module]");
+								+ "HookGenerator.CLI [clean module]");
 
 			string originalModulePath;
 

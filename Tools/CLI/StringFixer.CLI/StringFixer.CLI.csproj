@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{76BC6809-41E4-4448-89C5-9DBC474975FF}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>StringFixerLib.CLI</RootNamespace>
-    <AssemblyName>StringFixerLib.CLI</AssemblyName>
+    <RootNamespace>osu_patch.Lib.StringFixer.CLI</RootNamespace>
+    <AssemblyName>StringFixer.CLI</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>

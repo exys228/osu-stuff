@@ -5,9 +5,9 @@ VisualStudioVersion = 16.0.29324.140
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu!patch", "osu!patch\osu!patch.csproj", "{5F7F349B-A3D0-4124-9BF3-2E030A43BB3B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringFixerLib.CLI", "Tools\CLI\StringFixerLib.CLI\StringFixerLib.CLI.csproj", "{76BC6809-41E4-4448-89C5-9DBC474975FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StringFixer.CLI", "Tools\CLI\StringFixer.CLI\StringFixer.CLI.csproj", "{76BC6809-41E4-4448-89C5-9DBC474975FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HookManager.CLI", "Tools\CLI\HookManager.CLI\HookManager.CLI.csproj", "{690C9296-DDE4-402A-A303-A5764131550B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HookGenerator.CLI", "Tools\CLI\HookGenerator.CLI\HookGenerator.CLI.csproj", "{690C9296-DDE4-402A-A303-A5764131550B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NameMapper.CLI", "Tools\CLI\NameMapper.CLI\NameMapper.CLI.csproj", "{D0D224E0-E9F9-43D3-BAF8-45C79E6F92DB}"
 EndProject
