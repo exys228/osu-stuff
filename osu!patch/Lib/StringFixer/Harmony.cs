@@ -21,18 +21,17 @@
  * SOFTWARE.
  */
 
-using Harmony;
 using System;
 using System.Diagnostics;
 using System.Reflection;
+using HarmonyLib;
 
 namespace osu_patch.Lib.StringFixer
 {
 	static class Harmony
 	{
 		private const string HARMONY_ID = "exys.osudeobf";
-
-		private static readonly HarmonyInstance _harmony = HarmonyInstance.Create(HARMONY_ID);
+		private readonly static HarmonyLib.Harmony _harmony = new HarmonyLib.Harmony(HARMONY_ID);
 
 		public static void Patch() =>
 			_harmony.PatchAll(Assembly.GetExecutingAssembly());

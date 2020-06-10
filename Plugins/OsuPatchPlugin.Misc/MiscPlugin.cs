@@ -1,4 +1,4 @@
-﻿#define DISABLE_PLUGIN
+﻿//#define DISABLE_PLUGIN
 
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
@@ -231,46 +231,39 @@ namespace OsuPatchPlugin.Misc
 
 				var ConfigEditor = exp["osu.Configuration.ConfigManager"]["Initialize"].Editor;
 
-				var ReadBool = exp["osu.Configuration.ConfigManager"]["ReadBool"].Method; 
+				var ReadBool = exp["osu.Configuration.ConfigManager"]["ReadBool"].Method;
 
-				var ConfigLoc = ConfigEditor.Locate(new[] 
+				var ConfigLoc = ConfigEditor.Locate(new[]
 				{
-					OpCodes.Nop,      // 1 <-- start of first option
-					OpCodes.Ldstr,    // 2
-					OpCodes.Ldloc_2,  // 3   two config options because so much almost similar instructions
-					OpCodes.Call,     // 4
-					OpCodes.Stsfld,   // 5
-					OpCodes.Nop,      // 6 <-- end of first option start of second option
-					OpCodes.Ldstr,    // 7
-					OpCodes.Ldc_I4_0, // 8
-					OpCodes.Call,	  // 9
-					OpCodes.Stsfld,	  // 10
-					OpCodes.Nop       // 11 <-- end of second option
-									  // ?? <-- start of our own
+					OpCodes.Ldsfld,		// 1
+					OpCodes.Callvirt,	// 2
+					OpCodes.Br_S,		// 3
+					OpCodes.Call,		// 4
+					OpCodes.Ldsfld,		// 5
+					OpCodes.Callvirt,   // 6 
+					OpCodes.Call,		// 7
+					OpCodes.Stsfld,		// 8
+										// ?? <-- start of our own
 				}, false);
-
-				ConfigEditor.InsertAt(ConfigLoc + 11, new[] {
+				ConfigEditor.InsertAt(ConfigLoc + 8, new[] {
 					Instruction.Create(OpCodes.Ldstr, "noSpec"), // <-- name of our option in config
 					Instruction.Create(OpCodes.Ldc_I4_0),
 					Instruction.Create(OpCodes.Call, ReadBool),
 					Instruction.Create(OpCodes.Stsfld, noSpec),
-					Instruction.Create(OpCodes.Nop)
 				});
 
 				var OptionsEditor = exp["osu.GameModes.Options.Options"]["InitializeOptions"].Editor;
-
-				var OptionsLoc = OptionsEditor.Locate(new[] 
+				var OptionsLoc = OptionsEditor.Locate(new[]
 				{
-					OpCodes.Callvirt, // 0
-					OpCodes.Ldloc_1,  // 1
-					OpCodes.Call,	  // 2
-					OpCodes.Ldarg_0,  // 3		
-					OpCodes.Call,	  // 4		from 4 to 6 { this.Add(new OptionVersion(General.get_BUILD_NAME())); }
-					OpCodes.Newobj,   // 5		
-					OpCodes.Call	  // 6
+					OpCodes.Callvirt,
+					OpCodes.Ldloc_1,  // 0
+					OpCodes.Call,	  // 1
+					OpCodes.Ldarg_0,  // 2		
+					OpCodes.Call,	  // 3		from 3 to 5 { this.Add(new OptionVersion(General.get_BUILD_NAME())); }
+					OpCodes.Newobj,   // 4		
+					OpCodes.Call	  // 5
 									  // <-- Insert our option
 				}, false);
-
 				var OptionCategory = exp["osu.GameModes.Options.OptionCategory"].FindMethodRaw(".ctor").Method;
 				var OptionSection = exp["osu.GameModes.Options.OptionSection"].Type;
 				var OptionElement = exp["osu.GameModes.Options.OptionElement"].Type;
@@ -307,7 +300,7 @@ namespace OsuPatchPlugin.Misc
 					Instruction.Create(OpCodes.Ldsfld, noSpec),						 // reference to ConfigManager.noSpec
 					Instruction.Create(OpCodes.Ldnull),
 					Instruction.Create(OpCodes.Newobj, optionCheckbox),				 // add checkbox [new OptionCheckbox("No Spectators", ConfigManager.noSpec, null)]
-					Instruction.Create(OpCodes.Stelem_Ref),									// end of optionSection
+					Instruction.Create(OpCodes.Stelem_Ref),							 // end of optionSection
 					Instruction.Create(OpCodes.Callvirt, set_Children),
 					Instruction.Create(OpCodes.Ldloc_0),
 					Instruction.Create(OpCodes.Stelem_Ref),
@@ -316,11 +309,9 @@ namespace OsuPatchPlugin.Misc
 					Instruction.Create(OpCodes.Call, optionAdd)						// add above to options -- Yeey, everything is done!
 				});
 
-
 				var specEditor = exp["osu.Online.StreamingManager"]["PurgeFrames"].Editor;
-
 				var specLoc = specEditor.Locate(new[] {
-				    OpCodes.Ldc_I4_S,
+					OpCodes.Ldc_I4_S,			
 					OpCodes.Ldsfld,
 					OpCodes.Ldarg_0,
 					OpCodes.Ldloc_3,
@@ -340,17 +331,16 @@ namespace OsuPatchPlugin.Misc
 					OpCodes.Stsfld,
 					OpCodes.Newobj,
 					OpCodes.Call,
-				}, false);	
-
+				}, false);
 				var op_Implicit = BindableBool.FindMethod("op_Implicit", MethodSig.CreateStatic(exp.CorLibTypes.Boolean, BindableBool.ToTypeSig()));
 
 				// check if noSpectator option is enabled
 				specEditor.Insert(new[]
 				{
-					Instruction.Create(OpCodes.Ldsfld, noSpec), 
-					Instruction.Create(OpCodes.Call, op_Implicit), 
+					Instruction.Create(OpCodes.Ldsfld, noSpec),
+					Instruction.Create(OpCodes.Call, op_Implicit),
 					Instruction.Create(OpCodes.Brtrue, specEditor[specEditor.Count - 1])
-				}); 
+				});
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
@@ -410,8 +400,10 @@ namespace OsuPatchPlugin.Misc
 				});
 
 				return new PatchResult(patch, PatchStatus.Success);;
-			}),
-			new Patch("Switch servers to asuki.me", false, (patch, exp) =>
+			})
+		};
+			// rework by set_Url
+			/*new Patch("Switch servers to asuki.me", false, (patch, exp) =>
 			{
 				var method = exp["osu.Online.BanchoClient"].FindMethodRaw(".cctor");
 
@@ -494,7 +486,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			})
-		};
+		}; */
 #endif
 		public void Load(ModuleDef originalObfOsuModule) { }
 

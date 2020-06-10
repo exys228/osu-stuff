@@ -23,6 +23,14 @@ namespace osu_patch.Conversion
 		{
 			var genParamCount = methBase.ContainsGenericParameters ? methBase.GetGenericArguments().Length : 0;
 			var newParams = methBase.GetParameters().Skip(hasThis ? 1 : 0).Select(x => ImportAsOsuModuleType(x.ParameterType).ToTypeSig()).ToList();
+			if (!hasThis && genParamCount == 0)
+			{
+				return MethodSig.CreateStatic(ImportAsOsuModuleType(retType).ToTypeSig(), newParams.ToArray());
+			}
+			else if (!hasThis && genParamCount > 0)
+			{
+				return MethodSig.CreateStaticGeneric((uint)genParamCount, ImportAsOsuModuleType(retType).ToTypeSig());
+			}
 			return new MethodSig(ReflectionToDnLibConvention(methBase.CallingConvention), (uint)genParamCount, ImportAsOsuModuleType(retType).ToTypeSig(), newParams);
 		}
 

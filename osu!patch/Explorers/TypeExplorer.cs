@@ -180,7 +180,7 @@ namespace osu_patch.Explorers
 			}
 
 			var convertedMethodDef = new MethodConverter(del, this.GetRoot(), hasThis).ToMethodExplorer();
-			convertedMethodDef.Method.Attributes = attributes;
+			convertedMethodDef.Method.Attributes = attributes | MethodAttributes.HideBySig;
 
 			foreach (var param in paramList)
 				convertedMethodDef.Method.ParamDefs.Add(new ParamDefUser(param.Name, (ushort)param.Position, (ParamAttributes)param.Attributes));
