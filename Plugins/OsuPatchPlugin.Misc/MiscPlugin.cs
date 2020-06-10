@@ -255,13 +255,13 @@ namespace OsuPatchPlugin.Misc
 				var OptionsEditor = exp["osu.GameModes.Options.Options"]["InitializeOptions"].Editor;
 				var OptionsLoc = OptionsEditor.Locate(new[]
 				{
-					OpCodes.Callvirt,
-					OpCodes.Ldloc_1,  // 0
-					OpCodes.Call,	  // 1
-					OpCodes.Ldarg_0,  // 2		
-					OpCodes.Call,	  // 3		from 3 to 5 { this.Add(new OptionVersion(General.get_BUILD_NAME())); }
-					OpCodes.Newobj,   // 4		
-					OpCodes.Call	  // 5
+					OpCodes.Callvirt, // 0
+					OpCodes.Ldloc_1,  // 1
+					OpCodes.Call,	  // 2
+					OpCodes.Ldarg_0,  // 3		
+					OpCodes.Call,	  // 4		from 4 to 6 { this.Add(new OptionVersion(General.get_BUILD_NAME())); }
+					OpCodes.Newobj,   // 5		
+					OpCodes.Call	  // 6
 									  // <-- Insert our option
 				}, false);
 				var OptionCategory = exp["osu.GameModes.Options.OptionCategory"].FindMethodRaw(".ctor").Method;
