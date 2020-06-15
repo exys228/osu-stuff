@@ -22,7 +22,6 @@ namespace osu_patch.Conversion
 		private MemberConverter _memberConverter;
 
 		private bool _hasThis;
-		private MethodAttributes _flags;
 
 		public MethodConverter(Delegate del, ModuleExplorer osuModule, bool hasThis = false) : this(del, new MemberConverter(osuModule), hasThis) { }
 

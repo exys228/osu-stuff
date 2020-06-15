@@ -22,7 +22,7 @@ namespace osu_patch.Naming
 		public string GetName(string name)
 		{
 			if (_names is null || !_names.TryGetValue(name, out string obfName))
-				throw new NameProviderException("Unable to find name: " + name);
+				return null;
 
 			return obfName;
 		}

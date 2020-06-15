@@ -1,6 +1,8 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using dnlib.DotNet.MD;
+using osu_patch.Conversion;
+using osu_patch.Explorers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,6 +38,7 @@ namespace osu_patch.Lib.HookGenerator
 			_processedMethods.Clear();
 			_processedFields.Clear();
 
+
 			_hookModule = new ModuleDefUser($"{_assemblyName}.dll", Guid.NewGuid(), new AssemblyRefUser(new AssemblyNameInfo(typeof(void).Assembly.GetName().FullName)))
 			{
 				Kind = ModuleKind.Dll,
@@ -46,7 +49,6 @@ namespace osu_patch.Lib.HookGenerator
 			ass.Modules.Add(_hookModule); // ??????? wtf but this is needed lmao
 
 			// -- Add custom attribute for identifying
-
 			var attr = new TypeDefUser(IDENTIFICATION_ATTRIBUTE_NAME, _hookModule.Import(typeof(Attribute)));
 			var attrCtor = new MethodDefUser(".ctor", MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
 			attrCtor.Body = new CilBody();
@@ -57,7 +59,6 @@ namespace osu_patch.Lib.HookGenerator
 			ass.CustomAttributes.Add(new CustomAttribute(attrCtor));
 
 			// --
-
 			foreach (var typeDef in _originalModule.Types)
 				CreateRawTree(typeDef);
 
@@ -82,11 +83,9 @@ namespace osu_patch.Lib.HookGenerator
 			};
 
 			// Generate dummy methods
-
 			foreach (var originalMethod in originalTypeDef.Methods.Where(t => !t.IsNameObfuscated()))
 			{
 				var newMethod = new MethodDefUser(originalMethod.Name, MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), originalMethod.Attributes.ConvertToHookAttributes());
-
 				if (originalMethod.HasBody)
 				{
 					newMethod.Body = new CilBody();
@@ -101,9 +100,8 @@ namespace osu_patch.Lib.HookGenerator
 				newType.Methods.Add(newMethod);
 				_processedMethods.Add(new DefInfo<MethodDef>(newMethod, originalMethod));
 			}
-
+		
 			// Generate dummy fields
-
 			foreach (var originalField in originalTypeDef.Fields.Where(t => !t.IsNameObfuscated()))
 			{
 				var newField = new FieldDefUser(originalField.Name, new FieldSig(_hookModule.CorLibTypes.Object), originalField.Attributes.ConvertToHookAttributes());
@@ -123,7 +121,6 @@ namespace osu_patch.Lib.HookGenerator
 			foreach (var type in originalTypeDef.NestedTypes)
 				CreateRawTree(type, newType);
 		}
-
 		private void PopulateEverythingWithData()
 		{
 			// Populate types
@@ -173,6 +170,41 @@ namespace osu_patch.Lib.HookGenerator
 				if (originalMethodDef.HasGenericParameters)
 					foreach (var originalParam in originalMethodDef.GenericParameters)
 						hookMethodDef.GenericParameters.Add(new GenericParamUser(originalParam.Number, GenericParamAttributes.NoSpecialConstraint, originalParam.Name));
+
+				if (originalMethodDef.Overrides.Count > 0)
+				{
+					var hookOverrides = new List<MethodOverride>();
+					foreach (var @override in originalMethodDef.Overrides)
+					{
+						IMethodDefOrRef newOverrideMethod = null;
+
+						if (@override.MethodDeclaration.IsSystemType())
+						{
+							newOverrideMethod = @override.MethodDeclaration;
+							var overrideTypeSig = newOverrideMethod.DeclaringType.ToTypeSig();
+							var genSig = overrideTypeSig.ToGenericInstSig();
+							if (!(genSig is null))
+							{
+								var genArgs = genSig.GenericArguments;
+								var newTypeSigs = new List<TypeSig>();
+								foreach (var genArg in genArgs)
+								{
+									var newTypeDef = _processedTypes.FirstOrDefault(x => x.Value.HookDef.FullName == genArg.FullName).Value.HookDef;
+									newTypeSigs.Add(newTypeDef.ToTypeSig());
+								}
+
+								genArgs.Clear(); // Remove old args
+								genArgs.AddRange(newTypeSigs);
+							}
+						}
+						else
+							newOverrideMethod = _processedMethods.FirstOrDefault(x => x.HookDef.FullName == @override.MethodDeclaration.FullName).HookDef;
+
+						if (newOverrideMethod != null)
+							hookOverrides.Add(new MethodOverride(hookMethodDef, newOverrideMethod));
+					}
+					hookMethodDef.Overrides.AddRange(hookOverrides);
+				}
 			}
 		}
 
@@ -262,7 +294,7 @@ namespace osu_patch.Lib.HookGenerator
 				newAttrs &= ~(TypeAttributes.NestedFamORAssem | TypeAttributes.NestedPrivate);
 				newAttrs |= TypeAttributes.NestedPublic;
 			}
-			else if(!originalAttrs.HasFlag(TypeAttributes.NestedPublic))
+			else if (!originalAttrs.HasFlag(TypeAttributes.NestedPublic))
 				newAttrs |= TypeAttributes.Public;
 
 			return newAttrs;

@@ -5,6 +5,7 @@ using osu_patch.Explorers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -14,6 +15,7 @@ namespace osu_patch.Conversion
 	{
 		private IList<LocalVariableInfo> _locals;
 		private IList<ExceptionHandlingClause> _handlers;
+		private ParameterInfo[] _parameters;
 		private byte[] _body;
 		private bool _initLocals;
 
@@ -95,6 +97,7 @@ namespace osu_patch.Conversion
 		{
 			var methBody = del.Method.GetMethodBody() ?? throw new Exception("Unable to get method body!");
 
+			_parameters = del.Method.GetParameters();
 			_locals = methBody.LocalVariables;
 			_handlers = methBody.ExceptionHandlingClauses;
 			_body = methBody.GetILAsByteArray();
@@ -118,10 +121,18 @@ namespace osu_patch.Conversion
 			// Locals
 			var newLocals = new List<Local>();
 			foreach (var local in _locals)
+			{
 				newLocals.Add(new Local(_memberConverter.ImportAsOsuModuleType(local.LocalType).ToTypeSig(), "", local.LocalIndex));
+			}
+
+			var newParameters = new List<Parameter>();
+			foreach (var param in _parameters)
+			{
+				newParameters.Add(new Parameter(param.Position, _memberConverter.ImportAsOsuModuleType(param.ParameterType).ToTypeSig()));
+			}
 
 			// Instrs
-			var newInstrs = ConvertBytesToInstructions(newLocals);
+			var newInstrs = ConvertBytesToInstructions(newLocals, newParameters);
 
 			// Handlers
 			var newHandlers = new List<ExceptionHandler>();
@@ -147,7 +158,7 @@ namespace osu_patch.Conversion
 			return Result = new CilBody(_initLocals, newInstrs.Values.ToList(), newHandlers, newLocals);
 		}
 
-		private Dictionary<uint, Instruction> ConvertBytesToInstructions(IList<Local> locals)
+		private Dictionary<uint, Instruction> ConvertBytesToInstructions(IList<Local> locals, IList<Parameter> parameters)
 		{
 			var newInstrs = new Dictionary<uint, Instruction>(); // IL_IDX, nop
 			var branchesToFill = new Dictionary<Instruction, uint>(); // branch_instr, dest
@@ -271,7 +282,10 @@ namespace osu_patch.Conversion
 						break;
 
 					case OperandType.ShortInlineVar:
-						newInstr.Operand = locals[ReadByte()];
+						if (IsArgOperand(newInstr.OpCode))
+							newInstr.Operand = parameters[ReadByte() - 1]; // not sure if i should leave this here (i'm about that - 1), but it works. Maybe try with static methods?
+						else
+							newInstr.Operand = locals[ReadByte()];
 						break;
 				}
 
@@ -293,10 +307,24 @@ namespace osu_patch.Conversion
 
 				cases.Key.Operand = newCases;
 			}
-
 			return newInstrs;
 		}
 
+		public bool IsArgOperand(OpCode opCode)
+		{
+			switch (opCode.Code)
+			{
+				case Code.Ldarg:
+				case Code.Ldarg_S:
+				case Code.Ldarga:
+				case Code.Ldarga_S:
+				case Code.Starg:
+				case Code.Starg_S:
+					return true;
+				default:
+					return false;
+			}
+		}
 		public void RankDownIfLdarg(Instruction ins)
 		{
 			switch (ins.OpCode.Code)

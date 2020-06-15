@@ -72,7 +72,12 @@ namespace osu_patch
 
 		public static bool IsNameObfuscated(this string name)
 		{
-			return !CodeDomProvider.IsValidIdentifier(name) && !IsCompilerGenerated(name);
+			return !CodeDomProvider.IsValidIdentifier(name) && IsCompilerGenerated(name) || !CodeDomProvider.IsValidIdentifier(name) && name.StartsWith("#=");
+		}
+		public static void AddRange<T>(this ICollection<T> coll, IEnumerable<T> data)
+		{
+			foreach (var d in data)
+				coll.Add(d);
 		}
 
 		public static bool IsCompilerGenerated(this IFullName name) => IsCompilerGenerated(name.Name);
@@ -87,9 +92,8 @@ namespace osu_patch
 		{
 			return type.IsEazInternalName() || type.DeclaringType != null && type.DeclaringType.IsEazInternalNameRecursive();
 		}
-
+		public static bool IsSystemType(this IMethodDefOrRef method) => method.DeclaringType?.Namespace != null && (method.DeclaringType?.Namespace == "System" || method.DeclaringType.Namespace.StartsWith("System."));
 		public static bool IsSystemType(this Type type) => type?.Namespace != null && (type.Namespace == "System" || type.Namespace.StartsWith("System."));
-
 		public static bool IsSystemType(this ITypeDefOrRef type) => type?.Namespace != null && (type.Namespace == "System" || type.Namespace.StartsWith("System."));
 
 		public static string GetAssemblyGuid(this Assembly ass) => ass.GetCustomAttributes().OfType<GuidAttribute>().FirstOrDefault()?.Value;

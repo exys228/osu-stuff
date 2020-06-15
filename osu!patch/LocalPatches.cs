@@ -1,6 +1,5 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
-using osu_patch.Explorers;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -9,7 +8,6 @@ using System.Reflection;
 using osu_common.Updater;
 
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
-using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
 using OpCodes = dnlib.DotNet.Emit.OpCodes;
 
 namespace osu_patch
@@ -77,7 +75,6 @@ namespace osu_patch
 						Environment.Exit(0);
 					}
 				*/
-
 				exp["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
 				{
 					OpCodes.Call,

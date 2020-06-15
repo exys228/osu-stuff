@@ -66,6 +66,11 @@
       <Version>3.3.1</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="OsuHooks-77801cef">
+      <HintPath>..\..\osu!patch\etc\OsuHooks-77801cef.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO liveCd

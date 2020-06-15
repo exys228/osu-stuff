@@ -36,7 +36,6 @@ namespace osu_patch.Lib.HookGenerator.CLI
 			var hookModule = new HookGenerator(assemblyName, _originalModule).CreateHookModule();
 
 			XConsole.PrintInfo($"Finally writing {moduleName}!");
-
 			hookModule.Write(Path.Combine(Path.GetDirectoryName(originalModulePath) ?? throw new Exception("Path to write module to is null unexpectedly"), moduleName));
 			return 0;
 		}

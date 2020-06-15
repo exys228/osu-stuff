@@ -2,6 +2,9 @@
 
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using osu.GameModes.Options;
+using osu.Graphics.Sprites;
+using osu_common.Helpers;
 using osu_patch;
 using osu_patch.Editors;
 using osu_patch.Explorers;
@@ -145,7 +148,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("No minimum delay before pausing again", true, (patch, exp) =>
+			new Patch("No minimum delay before pausing again", false, (patch, exp) =>
 			{
 				// first 27 instructions
 				exp["osu.GameModes.Play.Player"]["togglePause"].Editor.LocateAndNop(new[]
@@ -270,9 +273,30 @@ namespace OsuPatchPlugin.Misc
 				var OptionSectionCtor = exp["osu.GameModes.Options.OptionSection"].FindMethodRaw(".ctor", MethodSig.CreateInstance(exp.CorLibTypes.Void, exp.CorLibTypes.String, exp.ImportAsTypeSig(typeof(IEnumerable<string>)))).Method;
 				var optionCheckbox = exp["osu.GameModes.Options.OptionCheckbox"].FindMethodRaw(".ctor", MethodSig.CreateInstance(exp.CorLibTypes.Void, exp.CorLibTypes.String, exp.CorLibTypes.String, BindableBool.ToTypeSig(), exp.ImportAsTypeSig(typeof(EventHandler)))).Method;
 				var set_Children = exp["osu.GameModes.Options.OptionElement"]["set_Children"].Method;
-				var optionAdd = exp["osu.GameModes.Options.Options"]["Add"].Method;
+				var optionAdd = exp["osu.GameModes.Options.Options"]["Add"].Method; 
 
 				//OptionsEditor.NopAt(OptionsLoc, 6); // removing build name -- 
+
+				// Null operands, idk what causing this atm
+
+				/*OptionsEditor.InsertAt(OptionsLoc + 6, (Options @this) =>
+				{
+					// Putting something as OsuString will causing that compiler won't want to give us the dll, 
+				    // maybe if you make your own OsuString it will work, idk
+					@this.Add(new OptionCategory(0, (FontAwesome)0xF09B)
+					{
+						children = new[]
+						{
+							new OptionSection("Custom")
+							{
+								children = new OptionElement[]
+								{
+									new OptionCheckbox("No Spectators", "Players can't spectate you", true)
+								}
+							}
+						}
+					}); 
+				}); */
 
 				OptionsEditor.InsertAt(OptionsLoc + 6, new[]
 				{
@@ -310,7 +334,8 @@ namespace OsuPatchPlugin.Misc
 				});
 
 				var specEditor = exp["osu.Online.StreamingManager"]["PurgeFrames"].Editor;
-				var specLoc = specEditor.Locate(new[] {
+				var specLoc = specEditor.Locate(new[] 
+				{
 					OpCodes.Ldc_I4_S,			
 					OpCodes.Ldsfld,
 					OpCodes.Ldarg_0,
@@ -340,7 +365,7 @@ namespace OsuPatchPlugin.Misc
 					Instruction.Create(OpCodes.Ldsfld, noSpec),
 					Instruction.Create(OpCodes.Call, op_Implicit),
 					Instruction.Create(OpCodes.Brtrue, specEditor[specEditor.Count - 1])
-				});
+				}); 
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
@@ -400,93 +425,25 @@ namespace OsuPatchPlugin.Misc
 				});
 
 				return new PatchResult(patch, PatchStatus.Success);;
-			})
-		};
-			// rework by set_Url
-			/*new Patch("Switch servers to asuki.me", false, (patch, exp) =>
+			}),
+			new Patch("Switch servers to Astellia", true, (patch, exp) =>
 			{
-				var method = exp["osu.Online.BanchoClient"].FindMethodRaw(".cctor");
-
-				var declStart = method.Editor.Locate(new[]
+				var set_Url = exp["osu_common.Helpers.pWebRequest"]["set_Url"].Editor;
+				set_Url.NopAt(0, 17);
+				set_Url.InsertAt(0, (pWebRequest @this, string value) =>
 				{
-					null,
-					OpCodes.Newarr,
-					OpCodes.Dup,
-					OpCodes.Ldc_I4_0,
-					null, // ezstr
-					null, // --
-					OpCodes.Stelem_Ref,
+					value = value
+						.Replace("osu.ppy.sh", "astellia.club")
+						.Replace("c.ppy.sh", "c.astellia.club")
+						.Replace("c4.ppy.sh", "c.astellia.club")
+						.Replace("c5.ppy.sh", "c.astellia.club")
+						.Replace("c6.ppy.sh", "c.astellia.club")
+						.Replace("a.ppy.sh", "a.astellia.club");
+					@this.url = value;
 				});
-
-				var toRemove = method.Editor.LocateAt(declStart, new[]
-				{
-					OpCodes.Stelem_Ref,
-					OpCodes.Stsfld
-				}, false) - declStart + 1;
-
-				method.Editor.Remove(toRemove);
-				method.Editor.Insert(AsukiPatch_CreateServersArrayInitializer(exp, new[]
-				{
-					"c.asuki.me"
-				}));
-
-				// TODO replace all ldstrs in all method bodies
-
-				var baseUrlField = new FieldDefUser("OSU_BASE_URL", new FieldSig(exp.Module.CorLibTypes.String), FieldAttributes.Public | FieldAttributes.Static);
-
-				var urlsType = exp["osu.Urls"].Type;
-
-				urlsType.Fields.Add(baseUrlField);
-
-				var methods = new MemberFinder().FindAll(exp.Module).MethodDefs.Select(x => x.Key);
-
-				foreach (var meth in methods)
-				{
-					var editor = new MethodExplorer(null, meth).Editor;
-
-					if (editor is null) // body is null
-						continue;
-
-					for (int i = 0; i < editor.Count; i++)
-					{
-						var instr = editor[i];
-
-						if (instr.OpCode == OpCodes.Ldstr)
-						{
-							string str;
-
-							if (instr.Operand is UTF8String operand)
-								str = operand;
-							else if (instr.Operand is string strOperand)
-								str = strOperand;
-							else continue;
-
-							if (str is null)
-								continue;
-
-							if (str.Contains(OSU_BASE_URL))
-							{
-								editor.Replace(i, AsukiPatch_UniversalizeOsuURL(exp, str, baseUrlField));
-								// XConsole.WriteLine($"{meth.DeclaringType.Name}::{meth.Name}");
-							}
-						}
-					}
-
-					editor.SimplifyBranches();
-					editor.OptimizeBranches();
-				}
-
-				var cctorEditor = new MethodExplorer(null, urlsType.FindMethod(".cctor")).Editor;
-
-				cctorEditor.InsertAt(cctorEditor.Count - 1, new[]
-				{
-					Instruction.Create(OpCodes.Ldstr, "asuki.me"),
-					Instruction.Create(OpCodes.Stsfld, baseUrlField),
-				});
-
 				return new PatchResult(patch, PatchStatus.Success);
 			})
-		}; */
+		}; 
 #endif
 		public void Load(ModuleDef originalObfOsuModule) { }
 

@@ -25,6 +25,7 @@ namespace osu_patch.Editors
 		public int Count => Instrs.Count;
 
 		private int _position;
+		public List<OpCode> BrOpCodes => new List<OpCode> { OpCodes.Br, OpCodes.Brfalse, OpCodes.Brtrue, OpCodes.Brfalse_S, OpCodes.Brtrue_S, OpCodes.Br_S };
 
 		/// <summary>
 		/// Counts from 0, you may set index that is equals to current Count and that will just add instruction to desired position instead of inserting it, pretty cool too.
@@ -186,25 +187,35 @@ namespace osu_patch.Editors
 			}
 		}
 
-		// -- Take Action's body instructions and then Insert them at specified index
-
-		public void Insert(Action<object> action) =>
-			InsertAt(_position, action);
+		/// <summary>
+		/// Read <paramref name="func"/>'s body as IL and insert it at specified index
+		/// </summary>
+		public void InsertAt<TResult>(int index, Func<TResult> func) =>
+			InsertAt(index, (Delegate)func);
 
 		/// <summary>
 		/// Read <paramref name="action"/>'s body as IL and insert it at specified index
 		/// </summary>
-		public void InsertAt(int index, Action<object> action)
-		{
-			throw new NotImplementedException();
+		public void InsertAt(int index, Action action) =>
+			InsertAt(index, (Delegate)action);
 
-			/*var info = action.GetMethodInfo();
-			var body = info.GetMethodBody();
-			var bodyArr = body?.GetILAsByteArray();
+		/// <summary>
+		/// Read <paramref name="action"/>'s body as IL and insert it at specified index
+		/// </summary>
+		public void InsertAt<T>(int index, Action<T> action) =>
+			InsertAt(index, (Delegate)action);
 
-			var reader = new BodyConverter(action, this.GetRoot());
-			var asd = reader.ToCilBody();*/
-		}
+		/// <summary>
+		/// Read <paramref name="action"/>'s body as IL and insert it at specified index
+		/// </summary>
+		public void InsertAt<T1, T2>(int index, Action<T1, T2> action) =>
+			InsertAt(index, (Delegate)action);
+
+		/// <summary>
+		/// Read <paramref name="delegate"/>'s body as IL and insert it at specified index
+		/// </summary>
+		public void InsertAt(int index, Delegate @delegate) =>
+			InsertAt(index, new BodyConverter(@delegate, Parent.GetRoot()).ToCilBody().Instructions.Where(x => x.OpCode != OpCodes.Ret).ToList());
 
 		// -- Insert call to MethodDef
 
