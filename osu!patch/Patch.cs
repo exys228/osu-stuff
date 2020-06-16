@@ -1,5 +1,7 @@
 ﻿using osu_patch.Explorers;
 using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace osu_patch
 {
@@ -7,15 +9,16 @@ namespace osu_patch
 	{
 		public string Name { get; }
 
-		public bool Enabled { get; set; }
+		public bool Enabled { get; set; } = true; // Enabled by default, overriden by config.
 
 		private readonly PatchFunction _patchMethod;
 
-		public Patch(string patchName, bool enabled, PatchFunction function)
+		public Patch(string patchName, PatchFunction function)
 		{
-			Enabled = enabled;
 			Name = patchName;
 			_patchMethod = function;
+
+			OsuPatcher.Patches.Add(this);
 		}
 
 		public PatchResult Execute(ModuleExplorer exp)

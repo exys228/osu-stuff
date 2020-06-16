@@ -39,6 +39,7 @@ namespace osu_patch
 
 		private static readonly string PluginsFolderLocation;
 		private static readonly string CacheFolderLocation;
+		private static readonly string ConfigFileLocation;
 
 		private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
 															 MetadataFlags.PreserveUSOffsets |
@@ -47,6 +48,8 @@ namespace osu_patch
 															 MetadataFlags.KeepOldMaxStack;
 
 		public static ConcurrentQueue<string> FancyOutput;
+
+		public static List<Patch> Patches = new List<Patch>();
 
 		static OsuPatcher()
 		{
@@ -99,6 +102,7 @@ namespace osu_patch
 
 			PluginsFolderLocation = Path.Combine(executingAssLocation, "plugins");
 			CacheFolderLocation = Path.Combine(executingAssLocation, "cache");
+			ConfigFileLocation = Path.Combine(executingAssLocation, "patcher.cfg");
 		}
 
 		public static int Main(string[] args)
@@ -182,6 +186,9 @@ namespace osu_patch
 			{
 				XConsole.PrintInfo($"{patch.Name}: ", false);
 
+				if (File.Exists(ConfigFileLocation)) // incase if config file not initialized
+					patch.Enabled = GetConfigEnabled(patch.Name);
+
 				PatchResult res = patch.Execute(_obfOsuExplorer);
 
 				switch (res.Result)
@@ -226,11 +233,24 @@ namespace osu_patch
 				XConsole.PrintInfo($"{plugin.AssemblyName}: Processing plugin: {plugin.TypeName}.");
 
 				foreach (var patch in plugin.Type.GetPatches())
+				{
 					ExecutePatchCli(patch);
+				}
 
 				XConsole.PrintInfo($"{plugin.AssemblyName}: Done processing: {plugin.TypeName}.");
 			}
 #endif
+			if (!File.Exists(ConfigFileLocation))
+			{
+				XConsole.PrintInfo("Creating config file...");
+				var configLines = string.Empty;
+
+				foreach (var patch in Patches)
+					configLines += patch.Name + " = " + "Enabled\n"; // probably bad implementation of config but simplest i can imagine
+
+				File.WriteAllText(ConfigFileLocation, configLines);
+				XConsole.PrintInfo("Config file created!");
+			}
 
 			XConsole.PrintInfo("Done processing all plugins.");
 
@@ -386,6 +406,20 @@ namespace osu_patch
 
 				return MapperNameProvider.Instance;
 			}
+		}
+
+		private static bool GetConfigEnabled(string key)
+		{
+			var lines = File.ReadAllLines(ConfigFileLocation);
+			foreach (var line in lines)
+			{
+				var sline = line.Split('=');
+				if (sline[0].Trim() == key)
+				{
+					return sline[1].Trim() == "Enabled" ? true : false;
+				}
+			}
+			return false;
 		}
 
 		private static void CleanControlFlow()

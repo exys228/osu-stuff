@@ -2,8 +2,11 @@
 
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using Microsoft.Xna.Framework;
 using osu.GameModes.Options;
+using osu.GameModes.Play.Rulesets;
 using osu.Graphics.Sprites;
+using osu_common.Bancho.Objects;
 using osu_common.Helpers;
 using osu_patch;
 using osu_patch.Editors;
@@ -25,7 +28,7 @@ namespace OsuPatchPlugin.Misc
 #else
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
-			new Patch("Local offset change while paused", true, (patch, exp) =>
+			new Patch("Local offset change while paused", (patch, exp) =>
 			{
 				// literally first 10 instructions
 				exp["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
@@ -49,7 +52,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Saving failed replays", true, (patch, exp) =>
+			new Patch("Saving failed replays", (patch, exp) =>
 			{
 				var Player = exp["osu.GameModes.Play.Player"];
 				var onKeyPressed = Player["onKeyPressed"];
@@ -109,7 +112,7 @@ namespace OsuPatchPlugin.Misc
 				*/
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Smooth cursor trail", true, (patch, exp) =>
+			new Patch("Smooth cursor trail", (patch, exp) =>
 			{
 				var add = exp["osu.Graphics.Renderers.CursorTrailRenderer"]["add"].Editor;
 				var loc = add.Locate(new[]
@@ -148,7 +151,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("No minimum delay before pausing again", false, (patch, exp) =>
+			new Patch("No minimum delay before pausing again", (patch, exp) =>
 			{
 				// first 27 instructions
 				exp["osu.GameModes.Play.Player"]["togglePause"].Editor.LocateAndNop(new[]
@@ -184,7 +187,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("No \"mouse buttons are disabled\" message", true, (patch, exp) =>
+			new Patch("No \"mouse buttons are disabled\" message", (patch, exp) =>
 			{
 				/*
 				 *	if (!warningMouseButtonsDisabled && ConfigManager.sMouseDisableButtons)
@@ -218,7 +221,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Don't send frames to spectators (NoSpectator)", true, (patch, exp) =>
+			new Patch("Don't send frames to spectators (NoSpectator)", (patch, exp) =>
 			{
 				/*
 				 * exp.Options.Add();
@@ -369,7 +372,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Don't send anti-cheat flags to Bancho", true, (patch, exp) =>
+			new Patch("Don't send anti-cheat flags to Bancho", (patch, exp) =>
 			{
 				// Startup flags 
 				// Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
@@ -404,7 +407,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);;
 			}),
-			new Patch("Remove check if filename is \"osu!.exe\"", true, (patch, exp) =>
+			new Patch("Remove check if filename is \"osu!.exe\"", (patch, exp) =>
 			{
 				exp["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
 				{
@@ -426,7 +429,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);;
 			}),
-			new Patch("Switch servers to Astellia", true, (patch, exp) =>
+			new Patch("Switch servers to Astellia", (patch, exp) =>
 			{
 				var set_Url = exp["osu_common.Helpers.pWebRequest"]["set_Url"].Editor;
 				set_Url.NopAt(0, 17);
@@ -442,7 +445,21 @@ namespace OsuPatchPlugin.Misc
 					@this.url = value;
 				});
 				return new PatchResult(patch, PatchStatus.Success);
-			})
+			}),
+			// Can't find name.
+			/*new Patch("Pippi", true, (patch, exp) => 
+			{
+				var autoPlay = exp["osu.GameModes.Play.Rulesets.Osu.RulesetOsu"]["AddFrameToReplay"].Editor;
+				autoPlay.InsertAt(0, (List<bReplayFrame> replay, bReplayFrame frame) =>
+				{
+					var addAngleAmount = Ruleset.Instance.hitObjectManager.HitObjectRadius * 0.98f;
+					var angle = frame.time / 200f;
+					Vector2 vector = addAngleAmount * new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
+					frame.mouseX += vector.X;
+					frame.mouseY += vector.Y;
+				});
+				return new PatchResult(patch, PatchStatus.Success);
+			}) */
 		}; 
 #endif
 		public void Load(ModuleDef originalObfOsuModule) { }

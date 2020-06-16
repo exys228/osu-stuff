@@ -16,7 +16,7 @@ namespace osu_patch
 	{
 		public static readonly Patch[] PatchList = // i thought that separating necessary patches from other ones would be better, so patches down below are 'vital' for running patched osu! without any problems
 		{
-			new Patch("\"Unsigned executable\" fix", true, (patch, exp) =>
+			new Patch("\"Unsigned executable\" fix", (patch, exp) =>
 			{
 				/*var meth = exp["osu_common.Helpers.pWebRequest"].InsertMethod(MethodAttributes.Public, delegate (pWebRequest @this)
 				{
@@ -93,7 +93,7 @@ namespace osu_patch
 
 				return patch.Result(PatchStatus.Success);
 			}),
-			new Patch("Bancho MD5 hash of osu!.exe fix", true, (patch, exp) =>
+			new Patch("Bancho MD5 hash of osu!.exe fix", (patch, exp) =>
 			{
 				var method = exp["osu.Online.BanchoClient"]["initializePrivate"];
 
@@ -117,7 +117,7 @@ namespace osu_patch
 				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, OsuPatcher.ObfOsuHash));
 				return patch.Result(PatchStatus.Success);
 			}),
-			new Patch("\"Patch on update\" patch", true, (patch, exp) =>
+			new Patch("\"Patch on update\" patch", (patch, exp) =>
 			{
 				#region Patch() function
 

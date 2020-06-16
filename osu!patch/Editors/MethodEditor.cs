@@ -379,6 +379,7 @@ namespace osu_patch.Editors
 	public enum InsertMode
 	{
 		Add,
-		Overwrite
+		Overwrite,
+		AddBefore
 	}
 }

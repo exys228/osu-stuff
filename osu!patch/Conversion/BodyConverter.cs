@@ -121,15 +121,12 @@ namespace osu_patch.Conversion
 			// Locals
 			var newLocals = new List<Local>();
 			foreach (var local in _locals)
-			{
 				newLocals.Add(new Local(_memberConverter.ImportAsOsuModuleType(local.LocalType).ToTypeSig(), "", local.LocalIndex));
-			}
 
+			// Parameters
 			var newParameters = new List<Parameter>();
 			foreach (var param in _parameters)
-			{
 				newParameters.Add(new Parameter(param.Position, _memberConverter.ImportAsOsuModuleType(param.ParameterType).ToTypeSig()));
-			}
 
 			// Instrs
 			var newInstrs = ConvertBytesToInstructions(newLocals, newParameters);

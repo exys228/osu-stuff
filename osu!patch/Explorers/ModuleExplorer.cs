@@ -30,7 +30,7 @@ namespace osu_patch.Explorers
 			string result = NameProvider.GetName(name);
 
 			if (result == null)
-				return new TypeExplorer(this, Module.Find(name, false), NameProvider);
+				return new TypeExplorer(this, Module.Find(name, false), NameProvider) ?? throw new ExplorerFindException($"Unable to find name: \"{name}\".");
 
 			return new TypeExplorer(this, Module.Find(result, false), NameProvider);
 		}
