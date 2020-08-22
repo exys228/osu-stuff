@@ -1,4 +1,4 @@
-using dnlib.DotNet;
+﻿using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using osu_patch;
 using osu_patch.Plugins;
@@ -36,6 +36,53 @@ namespace OsuPatchPlugin.SilentOsuDirect
 			new Patch("Download server patch", (patch, exp) =>
 			{
 				// Patch download server to storage.ainu.pw (that's me)
+				var osuDirectServer = exp["osu.Online.OsuDirectDownload"].FindMethodRaw(".ctor", 
+					MethodSig.CreateInstance(exp.CorLibTypes.Void,
+						exp.CorLibTypes.Int32,
+						exp.CorLibTypes.String,
+						exp.CorLibTypes.String,
+						exp.CorLibTypes.Boolean,
+						exp.CorLibTypes.Int32)).Editor;
+				var serverLoc = osuDirectServer.Locate(new[]
+				{
+					OpCodes.Ldarg_S,
+					OpCodes.Brfalse_S,
+					null,
+					null,
+					OpCodes.Br_S,
+					null,
+					null,
+					OpCodes.Stloc_1,
+				});
+				osuDirectServer.NopAt(serverLoc + 2, 1);
+				osuDirectServer.NopAt(serverLoc + 5, 1);
+				osuDirectServer.ReplaceAt(serverLoc + 3, Instruction.Create(OpCodes.Ldstr, "https://storage.ainu.pw/d/{0}n"));
+				osuDirectServer.ReplaceAt(serverLoc + 6, Instruction.Create(OpCodes.Ldstr, "https://storage.ainu.pw/d/{0}"));
+
+				var downloadServerBackup = exp["osu.Online.OsuDirectDownload"]["DownloadFallback"].Editor;
+				var downloadServerLoc = downloadServerBackup.Locate(new[]
+				{
+					null,
+					null,
+					OpCodes.Ldarg_0,
+					OpCodes.Ldfld,
+					OpCodes.Ldfld,
+					OpCodes.Box,
+					OpCodes.Call,
+					OpCodes.Ldnull,
+					OpCodes.Call,
+					OpCodes.Ret,
+				});
+				downloadServerBackup.NopAt(serverLoc, 1);
+				downloadServerBackup.ReplaceAt(downloadServerLoc + 1, Instruction.Create(OpCodes.Ldstr, "https://storage.ainu.pw/d/{0}"));
+
+				return new PatchResult(patch, PatchStatus.Success);
+			}),
+			/*
+			// This is old patching method
+			new Patch("Download server patch", (patch, exp) =>
+			{
+				// Patch download server to storage.ainu.pw (that's me)
 				var pWebReq = exp["osu_common.Helpers.pWebRequest"].FindMethodRaw(".ctor").Editor;
 				var pWebLoc = pWebReq.Locate(new[]
 				{
@@ -50,7 +97,7 @@ namespace OsuPatchPlugin.SilentOsuDirect
 				var parameter = pWebReq.Parent.Method.Parameters[1];
 				var instructions = new[] {
 					Instruction.Create(OpCodes.Ldarg_1),
-					Instruction.Create(OpCodes.Ldstr, "ppy.sh/d/"),
+					Instruction.Create(OpCodes.Ldstr, "osu.ppy.sh/d/"),
 					Instruction.Create(OpCodes.Callvirt, contains),
 					Instruction.Create(OpCodes.Nop),
 					Instruction.Create(OpCodes.Ldstr, ""),
@@ -70,6 +117,7 @@ namespace OsuPatchPlugin.SilentOsuDirect
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
+			*/
 			new Patch("Enable osu!direct", (patch, exp) =>
 			{
 				// Remove supporter check
@@ -97,6 +145,77 @@ namespace OsuPatchPlugin.SilentOsuDirect
 					OpCodes.Brtrue_S,
 					OpCodes.Ret
 				});
+				// Enable auto beatmap download when spectating
+				exp["osu.GameModes.Play.Player"]["OnLoadStart"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldsfld,
+					OpCodes.Call,
+					OpCodes.Ldc_I4_4,
+					OpCodes.And,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Ble_S,
+				});
+				exp["osu.Online.StreamingManager"]["HandleSongChange"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldsfld,
+					OpCodes.Brtrue,
+					OpCodes.Ldsfld,
+					OpCodes.Ldfld,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Ble,
+					OpCodes.Ldsfld,
+					OpCodes.Call,
+					OpCodes.Ldc_I4_4,
+					OpCodes.And,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Ble_S,
+				});
+				// Download beatmap from link
+				exp["osu.GameModes.Select.Drawable.OnlineBeatmap"]["FromId"].Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldsfld,
+					OpCodes.Call,
+					OpCodes.Ldc_I4_4,
+					OpCodes.And,
+					OpCodes.Brtrue_S,
+					OpCodes.Ldsfld,
+					OpCodes.Call,
+					OpCodes.Ldc_I4_S,
+					OpCodes.And,
+					OpCodes.Brfalse_S,
+					OpCodes.Ldsfld,
+					OpCodes.Brtrue_S,
+					OpCodes.Ret,
+				});
+				/*
+				exp["osu.Online.OsuDirect"].FindMethod("HandlePickup",
+					MethodSig.CreateInstance(
+						exp.CorLibTypes.String,
+						exp.ImportAsTypeSig(typeof(EventHandler)),
+						exp.ImportAsTypeSig(typeof(EventHandler))
+						)
+					).Editor.LocateAndNop(new[]
+				{
+					OpCodes.Ldsfld,
+					OpCodes.Call,
+					OpCodes.Ldc_I4_4,
+					OpCodes.And,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Bgt_S,
+					OpCodes.Ldsfld,
+					OpCodes.Call,
+					OpCodes.Ldc_I4_S,
+					OpCodes.And,
+					OpCodes.Ldc_I4_0,
+					OpCodes.Ble_S,
+					OpCodes.Ldsfld,
+					OpCodes.Brtrue_S,
+				});
+				*/
+				return new PatchResult(patch, PatchStatus.Success);
+			}),
+			new Patch("Search server patch", (patch, exp) =>
+			{
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
 		};
