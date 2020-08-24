@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace osu_patch.Naming
 {
-	class MapperNameProvider : INameProvider
+	public class MapperNameProvider : INameProvider
 	{
 		private NameMapper _nameMapper;
 

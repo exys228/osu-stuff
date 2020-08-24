@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace osu_patch.Naming
 {
-	class SimpleNameProvider : INameProvider
+	public class SimpleNameProvider : INameProvider
 	{
 		private Dictionary<string, string> _names;
 

@@ -92,7 +92,6 @@ namespace osu_patch.Lib.StringFixer
 				OpCodes.Ret
 			};
 
-
 			var count = 0;
 
 			MethodDef osuAuthLoaderMethod = null;
@@ -100,7 +99,7 @@ namespace osu_patch.Lib.StringFixer
 			// find OsuAuthLoader method
 			foreach (var meth in gameBase.Methods)
 			{
-				if (meth.HasBody)
+				if (meth.HasBody && !meth.HasParams() && meth.Attributes.HasFlag(dnlib.DotNet.MethodAttributes.Assembly))
 				{
 					foreach (var instr in meth.Body.Instructions)
 					{
