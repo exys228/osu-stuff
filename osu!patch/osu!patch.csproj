@@ -104,7 +104,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="dnlib">
-      <Version>3.3.1</Version>
+      <Version>3.3.2</Version>
     </PackageReference>
     <PackageReference Include="lib.harmony">
       <Version>2.0.1</Version>

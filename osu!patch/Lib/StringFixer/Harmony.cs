@@ -31,13 +31,21 @@ namespace osu_patch.Lib.StringFixer
 	static class Harmony
 	{
 		private const string HARMONY_ID = "exys.osudeobf";
-		private readonly static HarmonyLib.Harmony _harmony = new HarmonyLib.Harmony(HARMONY_ID);
+		public readonly static HarmonyLib.Harmony HarmonyInstance = new HarmonyLib.Harmony(HARMONY_ID);
 
 		public static void Patch() =>
-			_harmony.PatchAll(Assembly.GetExecutingAssembly());
+			HarmonyInstance.PatchAll(Assembly.GetExecutingAssembly());
 
 		public static void Unpatch() =>
-			_harmony.UnpatchAll(HARMONY_ID);
+			HarmonyInstance.UnpatchAll(HARMONY_ID);
+
+		public class PatchOsuAuthLoader
+		{
+			public static void Prefix()
+			{
+				return;
+			}
+		}
 
 		[HarmonyPatch(typeof(StackFrame), "GetMethod")]
 		public class PatchStackTraceGetMethod

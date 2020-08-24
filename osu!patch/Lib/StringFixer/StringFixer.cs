@@ -44,6 +44,83 @@ namespace osu_patch.Lib.StringFixer
 			//a dictionary to cache all strings
 			var dictionary = new Dictionary<int, string>();
 
+			// random method to get GameBase type
+			var targetFramerateSig = new List<OpCode>
+			{
+				OpCodes.Ldsfld,
+				OpCodes.Callvirt,
+				OpCodes.Ldc_I4_1,
+				OpCodes.Bne_Un_S,
+				OpCodes.Ldc_R8,
+				OpCodes.Ret,
+				OpCodes.Call,
+				OpCodes.Stloc_0,
+				OpCodes.Ldsfld
+			};
+
+			TypeDef gameBase = null;
+
+			foreach (var type in module.GetTypes())
+			{
+				foreach (var meth in type.Methods)
+				{
+					if (meth.HasBody && !meth.Name.StartsWith("#=q") && meth.ReturnType == module.CorLibTypes.Double)
+					{
+						if (meth.Body.Instructions.Count == 48 && (double)meth.Body.Instructions[13].Operand == 960)
+						{
+							gameBase = type;
+							break;
+						}
+					}
+				}
+			}
+
+			var osuAuthLoaderSig = new List<OpCode>
+			{
+				OpCodes.Ldc_I4_1,
+				OpCodes.Newarr,
+				OpCodes.Stloc_0,
+				OpCodes.Ldloc_0,
+				OpCodes.Ldc_I4_0,
+				OpCodes.Ldarg_0,
+				OpCodes.Stelem_Ref,
+				OpCodes.Call,
+				OpCodes.Call,
+				OpCodes.Ldstr,
+				OpCodes.Ldloc_0,
+				OpCodes.Call,
+				OpCodes.Ret
+			};
+
+
+			var count = 0;
+
+			MethodDef osuAuthLoaderMethod = null;
+
+			// find OsuAuthLoader method
+			foreach (var meth in gameBase.Methods)
+			{
+				if (meth.HasBody)
+				{
+					foreach (var instr in meth.Body.Instructions)
+					{
+						foreach (var authOpCode in osuAuthLoaderSig)
+						{
+							if (instr.OpCode == authOpCode)
+								count++;
+							if (count == 13)
+							{
+								osuAuthLoaderMethod = meth;
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			// avoid OsuAuth call
+			Harmony.HarmonyInstance.Patch(assembly.Modules.ToArray()[0].ResolveMethod((int)osuAuthLoaderMethod.MDToken.Raw), new HarmonyLib.HarmonyMethod(typeof(Harmony.PatchOsuAuthLoader), "Prefix"));
+
 			//get the decrypter method in a way in which we can invoke it
 			var decrypter = FindMethod(assembly, decrypterMethod, new[] { typeof(int) }) ?? throw new StringFixerException("Couldn't find decrypter method through reflection");
 
