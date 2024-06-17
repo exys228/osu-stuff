@@ -17,21 +17,19 @@ namespace osu_patch
 		{
 			Name = patchName;
 			_patchMethod = function;
-
-			OsuPatcher.Patches.Add(this);
 		}
 
-		public PatchResult Execute(ModuleExplorer exp)
+		public PatchResult Execute(OsuPatcher patcher)
 		{
 			if (!Enabled)
 				return Result(PatchStatus.Disabled);
 
 #if DEBUG
-			return _patchMethod(this, exp);
+			return _patchMethod(patcher, this, patcher.Explorer);
 #else
 			try
 			{
-				return _patchMethod(this, exp);
+				return _patchMethod(patcher, this, patcher.Explorer);
 			}
 			catch (Exception ex)
 			{
@@ -44,5 +42,5 @@ namespace osu_patch
 			new PatchResult(this, status, message, ex);
 	}
 
-	public delegate PatchResult PatchFunction(Patch parent, ModuleExplorer exp);
+	public delegate PatchResult PatchFunction(OsuPatcher patcher, Patch parent, ModuleExplorer exp);
 }

@@ -28,7 +28,7 @@ namespace OsuPatchPlugin.Misc
 #else
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
-			new Patch("Local offset change while paused", (patch, exp) =>
+			new Patch("Local offset change while paused", (patcher, patch, exp) =>
 			{
 				// literally first 10 instructions
 				exp["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
@@ -52,7 +52,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Saving failed replays", (patch, exp) =>
+			new Patch("Saving failed replays", (patcher, patch, exp) =>
 			{
 				var Player = exp["osu.GameModes.Play.Player"];
 				var onKeyPressed = Player["onKeyPressed"];
@@ -112,7 +112,7 @@ namespace OsuPatchPlugin.Misc
 				*/
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Smooth cursor trail", (patch, exp) =>
+			new Patch("Smooth cursor trail", (patcher, patch, exp) =>
 			{
 				var add = exp["osu.Graphics.Renderers.CursorTrailRenderer"]["add"].Editor;
 				var loc = add.Locate(new[]
@@ -151,7 +151,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("No minimum delay before pausing again", (patch, exp) =>
+			new Patch("No minimum delay before pausing again", (patcher, patch, exp) =>
 			{
 				// first 27 instructions
 				exp["osu.GameModes.Play.Player"]["togglePause"].Editor.LocateAndNop(new[]
@@ -187,7 +187,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("No \"mouse buttons are disabled\" message", (patch, exp) =>
+			new Patch("No \"mouse buttons are disabled\" message", (patcher, patch, exp) =>
 			{
 				/*
 				 *	if (!warningMouseButtonsDisabled && ConfigManager.sMouseDisableButtons)
@@ -221,7 +221,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Don't send frames to spectators (NoSpectator)", (patch, exp) =>
+			new Patch("Don't send frames to spectators (NoSpectator)", (patcher, patch, exp) =>
 			{
 				/*
 				 * exp.Options.Add();
@@ -372,7 +372,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Don't send anti-cheat flags to Bancho", (patch, exp) =>
+			new Patch("Don't send anti-cheat flags to Bancho", (patcher, patch, exp) =>
 			{
 				// Startup flags 
 				// Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
@@ -407,7 +407,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);;
 			}),
-			new Patch("Remove check if filename is \"osu!.exe\"", (patch, exp) =>
+			new Patch("Remove check if filename is \"osu!.exe\"", (patcher, patch, exp) =>
 			{
 				exp["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
 				{
@@ -429,7 +429,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);;
 			}),
-			new Patch("Switch servers to Astellia", (patch, exp) =>
+			new Patch("Switch servers to Astellia", (patcher, patch, exp) =>
 			{
 				var set_Url = exp["osu_common.Helpers.pWebRequest"]["set_Url"].Editor;
 				set_Url.NopAt(0, 17);

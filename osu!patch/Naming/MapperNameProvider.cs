@@ -39,7 +39,7 @@ namespace osu_patch.Naming
 		public Dictionary<string, string> GetNamePairs() =>
 			_nameMapper.GetNamePairs();
 
-		public string GetName(string name)
+		public string GetName(string name, bool returnOriginal)
 		{
 			if (_renameNames)
 				return name;

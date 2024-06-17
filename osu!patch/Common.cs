@@ -36,6 +36,7 @@ namespace osu_patch
 			TypeRefUser typeRef = type.GetTypeRef(module);
 
 			TypeSig returnSig = returnType.GetTypeSig(module);
+			
 			TypeSig[] argsSig = new TypeSig[argsType.Length];
 
 			for (int i = 0; i < argsSig.Length; i++)

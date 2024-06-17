@@ -91,22 +91,22 @@ namespace osu_patch.Conversion
 			_body[_position++];
 		#endregion
 
-		public BodyConverter(Delegate del, ModuleExplorer osuModule) : this(del, new MemberConverter(osuModule)) { }
+		public BodyConverter(MethodBase method, TypeExplorer type) : this(method, new MemberConverter(type)) { }
 
-		public BodyConverter(Delegate del, MemberConverter memberConverter)
+		public BodyConverter(MethodBase method, MemberConverter memberConverter, bool importing = false)
 		{
-			var methBody = del.Method.GetMethodBody() ?? throw new Exception("Unable to get method body!");
+			var methBody = method.GetMethodBody() ?? throw new Exception("Unable to get method body!");
 
-			_parameters = del.Method.GetParameters();
+			_parameters = method.GetParameters();
 			_locals = methBody.LocalVariables;
 			_handlers = methBody.ExceptionHandlingClauses;
 			_body = methBody.GetILAsByteArray();
 			_initLocals = methBody.InitLocals;
 
-			_patchModule = del.Method.Module;
+			_patchModule = method.Module;
 			_memberConverter = memberConverter;
 
-			_decreaseLdargRank = (del.Method.Attributes & System.Reflection.MethodAttributes.Static) == 0; // not static
+			_decreaseLdargRank = (method.Attributes & System.Reflection.MethodAttributes.Static) == 0 && !importing; // not static
 
 			Result = null;
 		}
@@ -198,7 +198,6 @@ namespace osu_patch.Conversion
 						mdToken = new MDToken(ReadInt32());
 
 						MemberInfo mb;
-
 						if (mdToken.Table == Table.MemberRef)
 							mb = _patchModule.ResolveMember((int)mdToken.Raw);
 						else
@@ -267,7 +266,6 @@ namespace osu_patch.Conversion
 							branchesToFill.Add(newInstr, sDest);
 						else
 							newInstr.Operand = newInstrs[sDest];
-
 						break;
 
 					case OperandType.ShortInlineI:

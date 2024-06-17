@@ -1,37 +1,13 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{5F7F349B-A3D0-4124-9BF3-2E030A43BB3B}</ProjectGuid>
+	  <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
     <RootNamespace>osu_patch</RootNamespace>
-    <AssemblyName>osu!patch</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
-    <TargetFrameworkProfile />
     <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>none</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -43,75 +19,47 @@
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\LiveDebug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;LIVE_DEBUG</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <LangVersion>default</LangVersion>
-    <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>false</Prefer32Bit>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="de4dot.code">
-      <HintPath>libs\de4dot.code.dll</HintPath>
-    </Reference>
-    <Reference Include="OsuHooks-77801cef">
-      <HintPath>etc\OsuHooks-77801cef.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Conversion\BodyConverter.cs" />
-    <Compile Include="Conversion\MemberConverter.cs" />
-    <Compile Include="Conversion\MethodConverter.cs" />
-    <Compile Include="Explorers\IExplorerParent.cs" />
-    <Compile Include="Lib\DictionaryProcessor\DictionaryProcessor.cs" />
-    <Compile Include="Lib\DictionaryProcessor\DictionaryProcessorException.cs" />
-    <Compile Include="Lib\HookGenerator\HookGenerator.cs" />
-    <Compile Include="Lib\NameMapper\ConcurrentHashSet.cs" />
-    <Compile Include="Lib\NameMapper\Exceptions\NameMapperException.cs" />
-    <Compile Include="Lib\NameMapper\Exceptions\NameMapperProcessingException.cs" />
-    <Compile Include="Lib\NameMapper\Extensions.cs" />
-    <Compile Include="Lib\NameMapper\NamableProcessor.cs" />
-    <Compile Include="Lib\NameMapper\NameMapper.cs" />
-    <Compile Include="Lib\NameMapper\ProcessedManager.cs" />
-    <Compile Include="Common.cs" />
-    <Compile Include="Lib\StringFixer\Harmony.cs" />
-    <Compile Include="Lib\StringFixer\StringFixer.cs" />
-    <Compile Include="Lib\StringFixer\StringFixerException.cs" />
-    <Compile Include="Plugins\IOsuPatchPlugin.cs" />
-    <Compile Include="Exceptions\ExplorerFindException.cs" />
-    <Compile Include="Exceptions\MethodEditorLocateException.cs" />
-    <Compile Include="Exceptions\NameProviderException.cs" />
-    <Compile Include="Explorers\MethodExplorer.cs" />
-    <Compile Include="Explorers\TypeExplorer.cs" />
-    <Compile Include="PatchResult.cs" />
-    <Compile Include="Plugins\PluginInfo.cs" />
-    <Compile Include="Naming\INameProvider.cs" />
-    <Compile Include="Editors\MethodEditor.cs" />
-    <Compile Include="Naming\SimpleNameProvider.cs" />
-    <Compile Include="Patch.cs" />
-    <Compile Include="Naming\MapperNameProvider.cs" />
-    <Compile Include="LocalPatches.cs" />
-    <Compile Include="OsuPatcher.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Explorers\ModuleExplorer.cs" />
-  </ItemGroup>
-  <ItemGroup>
+    <Content Include="OsuHooks-2e6eaeda.dll" />
+    <Content Include="OsuHooks-77801cef.dll" />
     <Content Include="WriteColoredColors.png" />
     <Content Include="WriteColoredColors.txt" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Costura.Fody">
+      <Version>5.7.0</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="dnlib">
-      <Version>3.3.2</Version>
+      <Version>4.4.0</Version>
     </PackageReference>
-    <PackageReference Include="lib.harmony">
-      <Version>2.0.1</Version>
+    <PackageReference Include="Lib.Harmony">
+      <Version>2.3.1.1</Version>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.CodeDom" Version="8.0.0" />
   </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\..\EazDecodeLib\EazDecodeLib.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="AssemblyData">
+      <HintPath>libs\AssemblyData.dll</HintPath>
+    </Reference>
+    <Reference Include="de4dot.blocks">
+      <HintPath>libs\de4dot.blocks.dll</HintPath>
+    </Reference>
+    <Reference Include="de4dot.code">
+      <HintPath>libs\de4dot.code.dll</HintPath>
+    </Reference>
+    <Reference Include="de4dot.mdecrypt">
+      <HintPath>libs\de4dot.mdecrypt.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <PropertyGroup>
     <PreBuildEvent>IF /I "$(ConfigurationName)"=="Release" GOTO cleanup
 IF /I "$(ConfigurationName)"=="LiveDebug" GOTO cleanup
@@ -139,5 +87,10 @@ COPY /Y "$(ProjectDir)etc\clean.exe" "osu!patch\clean.exe"
 echo Copying all .dll references
 COPY /Y "$(TargetDir)*.dll" "osu!patch\"
 EXIT /B 0</PostBuildEvent>
+    <AssemblyTitle>osu!patch</AssemblyTitle>
+    <Product>osu!patch</Product>
+    <Copyright>Copyright ©  2020</Copyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 </Project>

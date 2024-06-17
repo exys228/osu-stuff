@@ -1,6 +1,6 @@
 ﻿namespace osu_patch.Plugins
 {
-	class PluginInfo
+	public class PluginInfo
 	{
 		public string AssemblyName { get; }
 

@@ -64,9 +64,9 @@ namespace osu_patch.Lib.StringFixer
 			{
 				foreach (var meth in type.Methods)
 				{
-					if (meth.HasBody && !meth.Name.StartsWith("#=q") && meth.ReturnType == module.CorLibTypes.Double)
+					if (meth.HasBody && !meth.Name.StartsWith("#=q") && meth.ReturnType == module.CorLibTypes.Double && !meth.HasParams() && meth.Attributes.HasFlag(dnlib.DotNet.MethodAttributes.Assembly))
 					{
-						if (meth.Body.Instructions.Count == 48 && (double)meth.Body.Instructions[13].Operand == 960)
+						if (meth.Body.Instructions.Count == 34 && meth.Body.Instructions[8].OpCode == OpCodes.Ldc_I4 && (int)meth.Body.Instructions[8].Operand == 960)
 						{
 							gameBase = type;
 							break;

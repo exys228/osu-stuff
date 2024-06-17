@@ -8,6 +8,7 @@ namespace osu_patch.Explorers
 	public class ModuleExplorer : IExplorerParent
 	{
 		public ModuleDefMD Module { get; }
+		public ModuleDefMD SelfModule { get; }
 
 		public INameProvider NameProvider { get; }
 
@@ -19,9 +20,10 @@ namespace osu_patch.Explorers
 
 		public ITypeDefOrRef Import(Type type) => Module.Import(type);
 
-		public ModuleExplorer(ModuleDefMD module, INameProvider nameProvider = null)
+		public ModuleExplorer(ModuleDefMD module, ModuleDefMD selfModule, INameProvider nameProvider = null)
 		{
 			Module = module;
+			SelfModule = selfModule;
 			NameProvider = nameProvider ?? MapperNameProvider.Instance;
 		}
 

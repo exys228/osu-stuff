@@ -19,10 +19,10 @@ namespace osu_patch.Naming
 		public Dictionary<string, string> GetNamePairs()
 			=> new Dictionary<string, string>(_names);
 
-		public string GetName(string name)
+		public string GetName(string name, bool returnOriginal)
 		{
 			if (_names is null || !_names.TryGetValue(name, out string obfName))
-				return null;
+				return returnOriginal ? name : null;
 
 			return obfName;
 		}
