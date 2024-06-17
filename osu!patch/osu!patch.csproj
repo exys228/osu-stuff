@@ -44,9 +44,6 @@
     <PackageReference Include="System.CodeDom" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\EazDecodeLib\EazDecodeLib.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <Reference Include="AssemblyData">
       <HintPath>libs\AssemblyData.dll</HintPath>
     </Reference>

@@ -1,9 +1,4 @@
-﻿using dnlib.DotNet;
-using dnlib.DotNet.Writer;
-using osu_patch.Explorers;
-using osu_patch.Lib.StringFixer;
-using osu_patch.Plugins;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
