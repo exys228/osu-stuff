@@ -119,7 +119,7 @@ namespace osu_patch.Conversion
 						{
 							var typeDef = new TypeDefUser($"{_typeExplorer.Type.FullName}_{methodType.Name}", _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
 							{
-								Attributes = ((TypeAttributes)(uint)methodBase.DeclaringType.Attributes) ^ ~TypeAttributes.NestedPrivate | TypeAttributes.Public,
+								Attributes = ((TypeAttributes)(uint)methodBase.DeclaringType.Attributes) & ~TypeAttributes.NestedPrivate | TypeAttributes.Public,
 							};
 
 							(_typeExplorer.Parent as ModuleExplorer).Module.Types.Add(typeDef);
