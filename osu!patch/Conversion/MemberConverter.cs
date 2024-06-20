@@ -9,6 +9,7 @@ using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using TypeAttributes = dnlib.DotNet.TypeAttributes;
 using osu_patch.Extensions;
+using HarmonyLib;
 
 namespace osu_patch.Conversion
 {
@@ -90,17 +91,14 @@ namespace osu_patch.Conversion
 			if (PatcherCache.HasPatcherType(memberInfo.DeclaringType.FullName))
 			{
 				var patcherType = PatcherCache.GetPatcherType(memberInfo.DeclaringType.FullName);
-				if (memberInfo is MethodBase)
+
+				var member = memberInfo is MethodBase ? 
+					(IMemberRef)patcherType.FindMethod(memberInfo.Name) : 
+					patcherType.FindField(memberInfo.Name);
+
+				if (member != null)
 				{
-					var meth = patcherType.FindMethod(memberInfo.Name);
-					if (meth != null)
-						return meth;
-				}
-				else
-				{
-					var field = patcherType.FindField(memberInfo.Name);
-					if (field != null)
-						return field;
+					return member;
 				}
 			}
 
@@ -119,15 +117,16 @@ namespace osu_patch.Conversion
 						explorer = _typeExplorer.FindNestedTypeRaw(methodType.Name);
 						if (explorer is null)
 						{
-							var nestedTypeDef = new TypeDefUser(methodType.Name, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
+							var typeDef = new TypeDefUser($"{_typeExplorer.Type.FullName}_{methodType.Name}", _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
 							{
-								Attributes = (TypeAttributes)(uint)methodBase.DeclaringType.Attributes,							
+								Attributes = ((TypeAttributes)(uint)methodBase.DeclaringType.Attributes) ^ ~TypeAttributes.NestedPrivate | TypeAttributes.Public,
 							};
-							_typeExplorer.Type.NestedTypes.Add(nestedTypeDef);
 
-							PatcherCache.AddType(methodType.ReflectionFullName, nestedTypeDef);
+							(_typeExplorer.Parent as ModuleExplorer).Module.Types.Add(typeDef);
 
-							explorer = new TypeExplorer(_moduleExplorer, nestedTypeDef);
+							PatcherCache.AddType(methodType.ReflectionFullName, typeDef);
+
+							explorer = new TypeExplorer(_moduleExplorer, typeDef);
 
 							if (!importedMethod.Name.StartsWith(".c"))
 							{
@@ -166,17 +165,16 @@ namespace osu_patch.Conversion
 						explorer = _typeExplorer.FindNestedTypeRaw(fieldType.Name);
 						if (explorer is null)
 						{
-							var nestedTypeDef = new TypeDefUser(field.DeclaringType.Name, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
+							var typeDef = new TypeDefUser($"{_typeExplorer.Type.FullName}_{field.DeclaringType.Name}", _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
 							{
-								Attributes = (TypeAttributes)(uint)field.DeclaringType.Attributes,
+								Attributes = ((TypeAttributes)(uint)field.DeclaringType.Attributes) & ~TypeAttributes.NestedPrivate | TypeAttributes.Public,
 							};
 
+							(_typeExplorer.Parent as ModuleExplorer).Module.Types.Add(typeDef);
 
-							_typeExplorer.Type.NestedTypes.Add(nestedTypeDef);
+							PatcherCache.AddType(importedField.DeclaringType.ReflectionFullName, typeDef);
 
-							PatcherCache.AddType(importedField.DeclaringType.ReflectionFullName, nestedTypeDef);
-
-							explorer = new TypeExplorer(_moduleExplorer, nestedTypeDef);
+							explorer = new TypeExplorer(_moduleExplorer, typeDef);
 
 							foreach (var constructor in memberInfo.DeclaringType.GetConstructors((BindingFlags)int.MaxValue))
 								ResolveMemberInfo(constructor);
@@ -211,7 +209,9 @@ namespace osu_patch.Conversion
 					var methodInfo = (MethodInfo)memberInfo;
 
 					// messy :(
-					var name = methodInfo.IsSpecialName || importedType.Name == "List`1" || _methodBlackList.Contains(methodInfo.Name) ? methodInfo.Name : _moduleExplorer.NameProvider.GetName(methodInfo.Name);
+					var name = methodInfo.IsSpecialName || importedType.Name == "List`1" || _methodBlackList.Contains(methodInfo.Name) ?
+						methodInfo.Name :
+						_moduleExplorer.NameProvider.GetName(methodInfo.Name);
 					
 					var methodSig = MethodInfoToMethodSig(methodInfo);
 
