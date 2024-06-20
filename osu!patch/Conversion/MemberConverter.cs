@@ -180,11 +180,19 @@ namespace osu_patch.Conversion
 								ResolveMemberInfo(constructor);
 						}
 					}
-					var fieldSig = FieldInfoToFieldSig(field);
-					var newFieldDef = new FieldDefUser(importedField.Name, fieldSig, (FieldAttributes)(ushort)field.Attributes);
 
-					explorer.Type.Fields.Add(newFieldDef);
-					return newFieldDef;
+					var fieldDef = explorer.FindFieldRawNoThrow(importedField.Name);
+
+					if (fieldDef != null)
+					{
+						return fieldDef;
+					}
+
+					var fieldSig = FieldInfoToFieldSig(field);
+					fieldDef = new FieldDefUser(importedField.Name, fieldSig, (FieldAttributes)(ushort)field.Attributes);
+
+					explorer.Type.Fields.Add(fieldDef);
+					return fieldDef;
 				}
 			}
 

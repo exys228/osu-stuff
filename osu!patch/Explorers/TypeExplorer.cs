@@ -54,6 +54,8 @@ namespace osu_patch.Explorers
 
 		public FieldDef FindFieldRaw(string name) => Type.FindField(name) ?? throw CreateException("field");
 
+		public FieldDef FindFieldRawNoThrow(string name) => Type.FindField(name);
+
 		public TypeExplorer FindNestedType(string name) => new TypeExplorer(this, Type.NestedTypes.FirstOrDefault(x => x.Name == NameProvider.GetName(name)) ?? throw CreateException("type"), NameProvider);
 
 		public TypeExplorer FindNestedTypeRaw(string name) {
