@@ -199,9 +199,11 @@ namespace osu_patch.Conversion
 			switch (memberInfo.MemberType)
 			{
 				case MemberTypes.Field:
-					return importedType.IsSystemType()
-						? (IMemberRef)_moduleExplorer.Module.Import((FieldInfo)memberInfo)
-						: importedType.FindField(_moduleExplorer.NameProvider.GetName(memberInfo.Name));
+					if (importedType.IsSystemType())
+						return _moduleExplorer.Module.Import((FieldInfo)memberInfo);
+
+					return importedType.FindField(_moduleExplorer.NameProvider.GetName(memberInfo.Name))
+						?? importedType.FindField(memberInfo.Name);
 
 				case MemberTypes.Constructor:
 					if (importedType.IsSystemType())
@@ -211,13 +213,16 @@ namespace osu_patch.Conversion
 					return importedType.FindMethod(ctorInfo.Name, MethodInfoToMethodSig(typeof(void), ctorInfo));
 
 				case MemberTypes.Method:
-					if (importedType.IsSystemType() && !importedType.HasGenericParameters)
+					// TODO: rework dependencies and remove this dirty fix
+					if (importedType.IsSystemType() && !importedType.HasGenericParameters || importedType.Namespace.StartsWith("OpenTK"))
 						return _moduleExplorer.Module.Import((MethodBase)memberInfo);
 
 					var methodInfo = (MethodInfo)memberInfo;
 
-					// messy :(
-					var name = methodInfo.IsSpecialName || importedType.Name == "List`1" || _methodBlackList.Contains(methodInfo.Name) ?
+					var hasObfuscatedMethods = importedType.Methods.Any(x => x.IsNameObfuscated());
+
+					// TODO: messy :(
+					var name = methodInfo.IsSpecialName || !hasObfuscatedMethods || importedType.Name == "List`1" || _methodBlackList.Contains(methodInfo.Name) ?
 						methodInfo.Name :
 						_moduleExplorer.NameProvider.GetName(methodInfo.Name);
 					
@@ -233,8 +238,6 @@ namespace osu_patch.Conversion
 							{
 								genericInstSig.GenericArguments[i] = ImportAsOsuModuleType(memberInfo.DeclaringType.GenericTypeArguments[i]).ToTypeSig();
 							}
-
-							return new MemberRefUser(_moduleExplorer.Module, name, methodSig, importedOsuType as TypeSpecUser);
 						}
 						return new MemberRefUser(_moduleExplorer.Module, name, methodSig, importedOsuType as TypeSpecUser);
 					}

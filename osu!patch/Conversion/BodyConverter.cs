@@ -104,6 +104,7 @@ namespace osu_patch.Conversion
 			_initLocals = methBody.InitLocals;
 
 			_patchModule = method.Module;
+
 			_memberConverter = memberConverter;
 
 			_decreaseLdargRank = (method.Attributes & System.Reflection.MethodAttributes.Static) == 0 && !importing; // not static
@@ -176,6 +177,7 @@ namespace osu_patch.Conversion
 				newInstr.Offset = (uint)(_position - 1);
 
 				MDToken mdToken;
+				MemberInfo mb;
 
 				switch (opCode.OperandType)
 				{
@@ -191,13 +193,19 @@ namespace osu_patch.Conversion
 						break;
 
 					case OperandType.InlineField:
-						newInstr.Operand = _memberConverter.ResolveMemberInfo(_patchModule.ResolveField(ReadInt32()));
+						mdToken = new MDToken(ReadInt32());
+
+						if (mdToken.Table == Table.MemberRef)
+							mb = _patchModule.ResolveMember((int)mdToken.Raw);
+						else
+							mb = _patchModule.ResolveField((int)mdToken.Raw);
+
+						newInstr.Operand = _memberConverter.ResolveMemberInfo(mb);
 						break;
 
 					case OperandType.InlineMethod:
 						mdToken = new MDToken(ReadInt32());
 
-						MemberInfo mb;
 						if (mdToken.Table == Table.MemberRef)
 							mb = _patchModule.ResolveMember((int)mdToken.Raw);
 						else
