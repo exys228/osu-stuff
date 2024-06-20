@@ -37,6 +37,16 @@ namespace osu_patch.Explorers
 			return new TypeExplorer(this, Module.Find(result, false), NameProvider);
 		}
 
+		public TypeExplorer FindRaw(string name)
+		{
+			var type = Module.Find(name, false);
+
+			if (type == null) 
+				return null;
+
+			return new TypeExplorer(this, type, NameProvider);
+		}
+
 		public IExplorerParent GetParent() => null;
 	}
 }

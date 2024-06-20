@@ -109,20 +109,21 @@ namespace osu_patch.Conversion
 				if (memberInfo is MethodBase methodBase)
 				{
 					var importedMethod = _moduleExplorer.Module.Import(methodBase);
-
 					var methodType = importedMethod.DeclaringType;
+
+					var typeName = $"{_typeExplorer.Type.FullName}_{methodType.Name}";
 
 					if (methodType.IsTypeRef && (methodType as TypeRef).IsNested)
 					{
-						explorer = _typeExplorer.FindNestedTypeRaw(methodType.Name);
+						explorer = _moduleExplorer.FindRaw(typeName);
 						if (explorer is null)
 						{
-							var typeDef = new TypeDefUser($"{_typeExplorer.Type.FullName}_{methodType.Name}", _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
+							var typeDef = new TypeDefUser(typeName, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
 							{
 								Attributes = ((TypeAttributes)(uint)methodBase.DeclaringType.Attributes) & ~TypeAttributes.NestedPrivate | TypeAttributes.Public,
 							};
 
-							(_typeExplorer.Parent as ModuleExplorer).Module.Types.Add(typeDef);
+							_moduleExplorer.Module.Types.Add(typeDef);
 
 							PatcherCache.AddType(methodType.ReflectionFullName, typeDef);
 
@@ -158,19 +159,21 @@ namespace osu_patch.Conversion
 				else if (memberInfo is FieldInfo field)
 				{
 					var importedField = _moduleExplorer.Module.Import(field) as IField;
+
 					var fieldType = importedField.DeclaringType;
+					var typeName = $"{_typeExplorer.Type.FullName}_{fieldType.Name}";
 
 					if (fieldType.IsTypeRef && (fieldType as TypeRef).IsNested)
 					{
-						explorer = _typeExplorer.FindNestedTypeRaw(fieldType.Name);
+						explorer = _moduleExplorer.FindRaw(typeName);
 						if (explorer is null)
 						{
-							var typeDef = new TypeDefUser($"{_typeExplorer.Type.FullName}_{field.DeclaringType.Name}", _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
+							var typeDef = new TypeDefUser(typeName, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
 							{
 								Attributes = ((TypeAttributes)(uint)field.DeclaringType.Attributes) & ~TypeAttributes.NestedPrivate | TypeAttributes.Public,
 							};
 
-							(_typeExplorer.Parent as ModuleExplorer).Module.Types.Add(typeDef);
+							_moduleExplorer.Module.Types.Add(typeDef);
 
 							PatcherCache.AddType(importedField.DeclaringType.ReflectionFullName, typeDef);
 
