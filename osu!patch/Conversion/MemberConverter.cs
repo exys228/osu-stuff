@@ -79,7 +79,15 @@ namespace osu_patch.Conversion
 		{
 			if (memberInfo is MethodInfo m && memberInfo.Module.Assembly == Assembly.GetEntryAssembly())
 			{
-				return _typeExplorer.InsertMethod((MethodAttributes)(int)m.Attributes, m).Method;
+				var methodExplorer = _typeExplorer.FindMethodRaw(memberInfo.Name);
+				if (methodExplorer is null)
+				{
+					return _typeExplorer.InsertMethod((MethodAttributes)(int)m.Attributes, m).Method;
+				}
+				else
+				{
+					return methodExplorer.Method;
+				}
 			}
 
 			if (memberInfo is Type type)
