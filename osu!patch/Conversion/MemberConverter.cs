@@ -276,7 +276,7 @@ namespace osu_patch.Conversion
 		/// </summary>
 		public ITypeDefOrRef ImportAsOsuModuleType(Type type)
 		{
-			if (type.IsSystemType() || !PatcherCache.IsHookAssembly(type.Assembly)) // System types and external dependencies (OpenTK, etc)
+			if (type.IsSystemType() || !PatcherCache.IsHookAssembly(type.Assembly) || type.IsGenericParameter) // System types and external dependencies (OpenTK, etc)
 				return _moduleExplorer.Import(type);
 
 			// from this point we know that type argument is definitely a Type from OsuHooks assembly
