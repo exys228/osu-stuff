@@ -1,5 +1,6 @@
 ﻿using dnlib.DotNet;
 using dnlib.DotNet.Writer;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -61,6 +62,8 @@ namespace osu_patch.Lib.NameMapper.CLI
 
 			NameMapper nameMapper = new NameMapper(_cleanModule, _obfModule, fancyOut);
 			nameMapper.BeginProcessing();
+
+			File.WriteAllText(Path.GetFileNameWithoutExtension(_obfModulePath) + "_sourcemap.json", JsonConvert.SerializeObject(nameMapper.GetNamePairs()));
 
 			string filename = Path.GetFileNameWithoutExtension(_obfModulePath) + "-nmapped" + Path.GetExtension(_obfModulePath);
 

@@ -286,7 +286,7 @@ namespace osu_patch.Conversion
 
 					case OperandType.ShortInlineVar:
 						if (IsArgOperand(newInstr.OpCode))
-							newInstr.Operand = parameters[ReadByte() - 1]; // not sure if i should leave this here (i'm about that - 1), but it works. Maybe try with static methods?
+							newInstr.Operand = parameters[_decreaseLdargRank ? ReadByte() - 1 : ReadByte()]; // not sure if i should leave this here (i'm about that - 1), but it works. Maybe try with static methods?
 						else
 							newInstr.Operand = locals[ReadByte()];
 						break;

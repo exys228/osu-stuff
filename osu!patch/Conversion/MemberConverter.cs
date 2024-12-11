@@ -44,6 +44,7 @@ namespace osu_patch.Conversion
 				methBase = declaringType
 					.GetMethods((BindingFlags)int.MaxValue)
 					.FirstOrDefault(x => x.Name == methBase.Name && x.GetParameters().Length == methBase.GetParameters().Length);
+				retType = (methBase as MethodInfo).ReturnType;
 			}
 
 			var oldParams = methBase.GetParameters();
@@ -91,7 +92,9 @@ namespace osu_patch.Conversion
 			}
 
 			if (memberInfo is Type type)
-				return ImportAsOsuModuleType(type).ResolveTypeDef();
+			{
+				return ImportAsOsuModuleType(type);
+			}
 
 			var importedOsuType = ImportAsOsuModuleType(memberInfo.DeclaringType);
 			var importedType = importedOsuType.ResolveTypeDef();

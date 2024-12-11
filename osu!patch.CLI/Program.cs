@@ -14,13 +14,14 @@ namespace osu_patch
 		// Basic wrapper
 		public static int Main(string[] args)
 		{
-			args = new string[] { @"E:\pr\osu-stuff\osu!patch.CLI\bin\Debug\osu!.exe" };
 			if (args.Length != 1)
+			{
 				return Exit("osu!patch - osu! assembly patcher\n" +
 							   "by exys, 2019 - 2020\n" +
 							   "\n" +
 							   "Usage:\n" +
 							   "osu!patch [obfuscated module]");
+			}
 
 			var path = string.Empty;
 

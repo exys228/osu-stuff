@@ -6,7 +6,7 @@ using osu_patch.Explorers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Text;
 using FieldAttributes = dnlib.DotNet.FieldAttributes;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using TypeAttributes = dnlib.DotNet.TypeAttributes;
@@ -50,8 +50,10 @@ namespace osu_patch.Lib.HookGenerator
 
 			// -- Add custom attribute for identifying
 			var attr = new TypeDefUser(IDENTIFICATION_ATTRIBUTE_NAME, _hookModule.Import(typeof(Attribute)));
-			var attrCtor = new MethodDefUser(".ctor", MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName);
-			attrCtor.Body = new CilBody();
+			var attrCtor = new MethodDefUser(".ctor", MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName)
+			{
+				Body = new CilBody()
+			};
 			attrCtor.Body.Instructions.Add(Instruction.Create(OpCodes.Ret));
 			attr.Methods.Add(attrCtor);
 
@@ -82,10 +84,22 @@ namespace osu_patch.Lib.HookGenerator
 				Attributes = originalTypeDef.Attributes.ConvertToHookAttributes()
 			};
 
+			bool hasNonAsciiChars(string str)
+			{
+				return (Encoding.UTF8.GetByteCount(str) != str.Length);
+			}
+
 			// Generate dummy methods
 			foreach (var originalMethod in originalTypeDef.Methods.Where(t => !t.IsNameObfuscated()))
 			{
-				var newMethod = new MethodDefUser(originalMethod.Name, MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), originalMethod.Attributes.ConvertToHookAttributes());
+				var name = originalMethod.Name;
+
+				if (hasNonAsciiChars(name))
+				{
+					name = BitConverter.ToString(Encoding.UTF8.GetBytes(name)).Replace("-", "");
+				}
+
+				var newMethod = new MethodDefUser(name, MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), originalMethod.Attributes.ConvertToHookAttributes());
 				if (originalMethod.HasBody)
 				{
 					newMethod.Body = new CilBody();
@@ -189,8 +203,15 @@ namespace osu_patch.Lib.HookGenerator
 								var newTypeSigs = new List<TypeSig>();
 								foreach (var genArg in genArgs)
 								{
-									var newTypeDef = _processedTypes.FirstOrDefault(x => x.Value.HookDef.FullName == genArg.FullName).Value.HookDef;
-									newTypeSigs.Add(newTypeDef.ToTypeSig());
+									if (genArg.ToTypeDefOrRef().IsSystemType())
+									{
+										newTypeSigs.Add(genArg.ToTypeDefOrRef().ToTypeSig());
+									}
+									else
+									{
+										var newTypeDef = _processedTypes.FirstOrDefault(x => x.Value.HookDef.FullName == genArg.FullName).Value.HookDef;
+										newTypeSigs.Add(newTypeDef.ToTypeSig());
+									}
 								}
 
 								genArgs.Clear(); // Remove old args
@@ -198,7 +219,9 @@ namespace osu_patch.Lib.HookGenerator
 							}
 						}
 						else
-							newOverrideMethod = _processedMethods.FirstOrDefault(x => x.HookDef.FullName == @override.MethodDeclaration.FullName).HookDef;
+						{
+							newOverrideMethod = _processedMethods.FirstOrDefault(x => x.HookDef.FullName == @override.MethodDeclaration.FullName)?.HookDef ?? null;
+						}
 
 						if (newOverrideMethod != null)
 							hookOverrides.Add(new MethodOverride(hookMethodDef, newOverrideMethod));
@@ -272,7 +295,6 @@ namespace osu_patch.Lib.HookGenerator
 		private class DefInfo<T> where T : IMemberDef
 		{
 			public T HookDef { get; }
-
 			public T OriginalDef { get; }
 
 			public DefInfo(T hookDef, T originalDef)
