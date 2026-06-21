@@ -95,18 +95,7 @@ namespace osu_patch.Conversion
 
 		public BodyConverter(MethodBase method, MemberConverter memberConverter, bool importing = false)
 		{
-			System.Reflection.MethodBody methBody;
-			try
-			{
-				methBody = method.GetMethodBody();
-			}
-			catch (Exception ex)
-			{
-				throw new Exception($"Unable to get method body for {method.DeclaringType?.FullName}::{method.Name}", ex);
-			}
-
-			if (methBody == null)
-				throw new Exception($"Unable to get method body for {method.DeclaringType?.FullName}::{method.Name}");
+			var methBody = method.GetMethodBody() ?? throw new Exception("Unable to get method body!");
 
 			_parameters = method.GetParameters();
 			_locals = methBody.LocalVariables;

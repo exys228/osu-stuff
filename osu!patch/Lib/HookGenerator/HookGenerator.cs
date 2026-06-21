@@ -84,6 +84,10 @@ namespace osu_patch.Lib.HookGenerator
 				Attributes = originalTypeDef.Attributes.ConvertToHookAttributes()
 			};
 
+			if (originalTypeDef.ClassLayout != null)
+				newType.ClassLayout = new ClassLayoutUser(originalTypeDef.ClassLayout.PackingSize, originalTypeDef.ClassLayout.ClassSize);
+
+
 			bool hasNonAsciiChars(string str)
 			{
 				return (Encoding.UTF8.GetByteCount(str) != str.Length);
@@ -121,7 +125,10 @@ namespace osu_patch.Lib.HookGenerator
 			// Generate dummy fields
 			foreach (var originalField in originalTypeDef.Fields.Where(t => !t.IsNameObfuscated()))
 			{
-				var newField = new FieldDefUser(originalField.Name, new FieldSig(_hookModule.CorLibTypes.Object), originalField.Attributes.ConvertToHookAttributes());
+				var newField = new FieldDefUser(originalField.Name, new FieldSig(_hookModule.CorLibTypes.Object), originalField.Attributes.ConvertToHookAttributes())
+				{
+					FieldOffset = originalField.FieldOffset
+				};
 				newType.Fields.Add(newField);
 				_processedFields.Add(new DefInfo<FieldDef>(newField, originalField));
 			}
