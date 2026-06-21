@@ -365,6 +365,15 @@ namespace osu_patch.Conversion
 				explorer.Type.Fields.Add(field);
 			}
 
+			var typeInitializer = type.TypeInitializer;
+			if (typeInitializer != null && typeInitializer.GetMethodBody() != null)
+			{
+				var methodSig = MethodInfoToMethodSig(typeof(void), typeInitializer);
+				if (explorer.FindMethodRaw(typeInitializer.Name, methodSig) == null && explorer.FindMethodRaw(typeInitializer.Name) == null)
+					explorer.InsertMethod((MethodAttributes)(int)typeInitializer.Attributes, typeInitializer, true);
+			}
+
+
 			return explorer;
 		}
 
