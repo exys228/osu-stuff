@@ -1,4 +1,4 @@
-﻿using dnlib.DotNet;
+using dnlib.DotNet;
 using osu_patch.Conversion;
 using osu_patch.Exceptions;
 using osu_patch.Extensions;
@@ -33,9 +33,11 @@ namespace osu_patch.Explorers
 		public MethodExplorer FindMethod(string name, MethodSig sig = null)
 		{
 			var obfName = NameProvider.GetName(name);
-			var result = (sig is null ? Type.FindMethod(obfName) : Type.FindMethod(obfName, sig)) ?? throw CreateException("method");
-
-			return new MethodExplorer(this, result);
+			var result = sig is null
+				? (obfName != null ? Type.FindMethod(obfName) : null) ?? Type.FindMethod(name)
+				: (obfName != null ? Type.FindMethod(obfName, sig) : null) ?? Type.FindMethod(name, sig);
+			
+			return new MethodExplorer(this, result ?? throw CreateException("method"));
 		}
 
 		public MethodExplorer FindMethodRaw(string name, MethodSig sig = null)
@@ -50,13 +52,17 @@ namespace osu_patch.Explorers
 			return FindMethodRaw(name, sig) ?? throw CreateException("method");
 		}
 
-		public FieldDef FindField(string name) => Type.FindField(NameProvider.GetName(name)) ?? throw CreateException("field");
+		public FieldDef FindField(string name) =>
+			(NameProvider.GetName(name) is string obfName ? Type.FindField(obfName) : null) ?? Type.FindField(name) ?? throw CreateException("field");
 
 		public FieldDef FindFieldRaw(string name) => Type.FindField(name) ?? throw CreateException("field");
-
 		public FieldDef FindFieldRawNoThrow(string name) => Type.FindField(name);
-
-		public TypeExplorer FindNestedType(string name) => new TypeExplorer(this, Type.NestedTypes.FirstOrDefault(x => x.Name == NameProvider.GetName(name)) ?? throw CreateException("type"), NameProvider);
+		public TypeExplorer FindNestedType(string name)
+		{
+			var obfName = NameProvider.GetName(name);
+			var type = (obfName != null ? Type.NestedTypes.FirstOrDefault(x => x.Name == obfName) : null) ?? Type.NestedTypes.FirstOrDefault(x => x.Name == name);
+			return new TypeExplorer(this, type ?? throw CreateException("type"), NameProvider);
+		}
 
 		public TypeExplorer FindNestedTypeRaw(string name) {
 			var type = Type.NestedTypes.FirstOrDefault(x => x.Name == name);
@@ -194,10 +200,11 @@ namespace osu_patch.Explorers
 				hasThis = true;
 			}
 			
+			var forceStatic = (attributes & MethodAttributes.Static) != 0;
 			MethodExplorer convertedMethodDef;
 			
 			if (method is MethodInfo)
-				convertedMethodDef = new MethodConverter(method as MethodInfo, this, importing, hasThis).ToMethodExplorer();
+				convertedMethodDef = new MethodConverter(method as MethodInfo, this, importing, hasThis, forceStatic).ToMethodExplorer();
 			else
 				convertedMethodDef = new MethodConverter(method as ConstructorInfo, this, importing, hasThis).ToMethodExplorer();
 

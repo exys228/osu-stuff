@@ -1,9 +1,10 @@
-﻿using dnlib.DotNet;
+using dnlib.DotNet;
 using osu_patch.Explorers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using osu_patch.Lib.HookGenerator;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using FieldAttributes = dnlib.DotNet.FieldAttributes;
@@ -29,12 +30,12 @@ namespace osu_patch.Conversion
 			_moduleExplorer = typeExplorer.GetRoot();
 		}
 		
-		public MethodSig MethodInfoToMethodSig(MethodInfo methInfo, bool hasThis = false) =>
-			MethodInfoToMethodSig(methInfo.ReturnType, methInfo, hasThis);
+		public MethodSig MethodInfoToMethodSig(MethodInfo methInfo, bool hasThis = false, bool forceStatic = false) =>
+			MethodInfoToMethodSig(methInfo.ReturnType, methInfo, hasThis, forceStatic);
 
-		public MethodSig MethodInfoToMethodSig(Type retType, MethodBase methBase, bool hasThis = false)
+		public MethodSig MethodInfoToMethodSig(Type retType, MethodBase methBase, bool hasThis = false, bool forceStatic = false)
 		{
-			var isStatic = methBase.IsStatic && !hasThis;
+			var isStatic = (forceStatic || methBase.IsStatic) && !hasThis;
 
 			var genParamCount = methBase.ContainsGenericParameters ? methBase.GetGenericArguments().Length : 0;
 			
@@ -78,7 +79,7 @@ namespace osu_patch.Conversion
 
 		public IMemberRef ResolveMemberInfo(MemberInfo memberInfo)
 		{
-			if (memberInfo is MethodInfo m && memberInfo.Module.Assembly == Assembly.GetEntryAssembly())
+			if (memberInfo is MethodInfo m && memberInfo.Module.Assembly == Assembly.GetEntryAssembly() && !m.DeclaringType.IsDefined(typeof(CompilerGeneratedAttribute), false))
 			{
 				var methodExplorer = _typeExplorer.FindMethodRaw(memberInfo.Name);
 				if (methodExplorer is null)
@@ -136,6 +137,7 @@ namespace osu_patch.Conversion
 
 							_moduleExplorer.Module.Types.Add(typeDef);
 
+							PatcherCache.AddType(methodBase.DeclaringType.FullName, typeDef);
 							PatcherCache.AddType(methodType.ReflectionFullName, typeDef);
 
 							explorer = new TypeExplorer(_moduleExplorer, typeDef);
@@ -153,15 +155,20 @@ namespace osu_patch.Conversion
 					if (importedMethod.IsCompilerGenerated())
 					{
 						var methodInfo = methodBase as MethodInfo;
-						var methodExplorer = explorer.InsertMethod((MethodAttributes)(int)methodInfo.Attributes, methodInfo, true);
+						var existingMethod = explorer.FindMethodRaw(importedMethod.Name);
+						if (existingMethod != null)
+							return existingMethod.Method;
 
+						var methodExplorer = explorer.InsertMethod((MethodAttributes)(int)methodInfo.Attributes, methodInfo, true);
 						return methodExplorer.Method;
 					}
-					else if (importedMethod.Name.StartsWith(".c") && explorer.FindMethodRaw(importedMethod.Name) == null)
+					else if (importedMethod.Name.StartsWith(".c") && methodBase.DeclaringType.IsDefined(typeof(CompilerGeneratedAttribute), false) && explorer.FindMethodRaw(importedMethod.Name) == null)
 					{
 						var constructorInfo = methodBase as ConstructorInfo;
+						if (constructorInfo.GetMethodBody() == null)
+							return importedMethod;
+
 						var methodExplorer = explorer.InsertMethod((MethodAttributes)(int)constructorInfo.Attributes, methodBase, true);
-					
 						return methodExplorer.Method;
 					}
 
@@ -186,6 +193,7 @@ namespace osu_patch.Conversion
 
 							_moduleExplorer.Module.Types.Add(typeDef);
 
+							PatcherCache.AddType(field.DeclaringType.FullName, typeDef);
 							PatcherCache.AddType(importedField.DeclaringType.ReflectionFullName, typeDef);
 
 							explorer = new TypeExplorer(_moduleExplorer, typeDef);
@@ -216,15 +224,21 @@ namespace osu_patch.Conversion
 					if (importedType.IsSystemType())
 						return _moduleExplorer.Module.Import((FieldInfo)memberInfo);
 
-					return importedType.FindField(_moduleExplorer.NameProvider.GetName(memberInfo.Name))
-						?? importedType.FindField(memberInfo.Name);
+					var fieldInfo = (FieldInfo)memberInfo;
+					var fieldName = _moduleExplorer.NameProvider.GetName(memberInfo.Name, true);
+					var resolvedField = importedType.FindField(fieldName) ?? importedType.FindField(memberInfo.Name);
+					if (resolvedField != null)
+						return resolvedField;
+
+					return new MemberRefUser(_moduleExplorer.Module, fieldName, FieldInfoToFieldSig(fieldInfo), importedOsuType);
 
 				case MemberTypes.Constructor:
 					if (importedType.IsSystemType())
 						return _moduleExplorer.Module.Import((MethodBase)memberInfo);
 
 					var ctorInfo = (ConstructorInfo)memberInfo;
-					return importedType.FindMethod(ctorInfo.Name, MethodInfoToMethodSig(typeof(void), ctorInfo));
+					return importedType.FindMethod(ctorInfo.Name, MethodInfoToMethodSig(typeof(void), ctorInfo))
+						?? _moduleExplorer.Module.Import((MethodBase)memberInfo);
 
 				case MemberTypes.Method:
 					// TODO: rework dependencies and remove this dirty fix
@@ -238,7 +252,7 @@ namespace osu_patch.Conversion
 					// TODO: messy :(
 					var name = methodInfo.IsSpecialName || !hasObfuscatedMethods || importedType.Name == "List`1" || _methodBlackList.Contains(methodInfo.Name) ?
 						methodInfo.Name :
-						_moduleExplorer.NameProvider.GetName(methodInfo.Name);
+						_moduleExplorer.NameProvider.GetName(methodInfo.Name, true);
 					
 					var methodSig = MethodInfoToMethodSig(methodInfo);
 
@@ -256,7 +270,13 @@ namespace osu_patch.Conversion
 						return new MemberRefUser(_moduleExplorer.Module, name, methodSig, importedOsuType as TypeSpecUser);
 					}
 					else
-						return importedType.FindMethod(name, methodSig);
+					{
+						var resolvedMethod = importedType.FindMethod(name, methodSig);
+						if (resolvedMethod != null)
+							return resolvedMethod;
+
+						return new MemberRefUser(_moduleExplorer.Module, name, methodSig, importedOsuType);
+					}
 
 				default:
 					throw new ArgumentOutOfRangeException();
@@ -340,10 +360,13 @@ namespace osu_patch.Conversion
 
 			public static void AddType(string name, TypeDef newType) 
 			{
-				_typeCache.Add(name, newType);
-				_typeCache.Add(newType.ReflectionFullName, newType);
+				if (name != null)
+					_typeCache[name] = newType;
+
+				_typeCache[newType.FullName] = newType;
+				_typeCache[newType.ReflectionFullName] = newType;
 			}
-			public static bool HasPatcherType(string name) => _typeCache.ContainsKey(name);
+			public static bool HasPatcherType(string name) => name != null && _typeCache.ContainsKey(name);
 			public static TypeDef GetPatcherType(string name) => _typeCache[name];
 
 			public static bool IsHookAssembly(Assembly ass)
