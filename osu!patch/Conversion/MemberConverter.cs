@@ -18,16 +18,17 @@ namespace osu_patch.Conversion
 	{
 		private ModuleExplorer _moduleExplorer;
 		private TypeExplorer _typeExplorer;
-
+		private Type _sourceDeclaringType;
 		private static List<string> _methodBlackList = new List<string>()
 		{
 			"GetEnumerator"
 		};
 
-		public MemberConverter(TypeExplorer typeExplorer)
+		public MemberConverter(TypeExplorer typeExplorer, Type sourceDeclaringType = null)
 		{
 			_typeExplorer = typeExplorer;
 			_moduleExplorer = typeExplorer.GetRoot();
+			_sourceDeclaringType = sourceDeclaringType;
 		}
 		
 		public MethodSig MethodInfoToMethodSig(MethodInfo methInfo, bool hasThis = false, bool forceStatic = false) =>
@@ -69,8 +70,8 @@ namespace osu_patch.Conversion
 		{
 			ITypeDefOrRef fieldType;
 
-			if (PatcherCache.HasPatcherType(field.FieldType.FullName))
-				fieldType = PatcherCache.GetPatcherType(field.FieldType.FullName);
+			if (PatcherCache.HasPatcherType(field.FieldType.FullName, _moduleExplorer.Module))
+				fieldType = PatcherCache.GetPatcherType(field.FieldType.FullName, _moduleExplorer.Module);
 			else
 				fieldType = ImportAsOsuModuleType(field.FieldType);
 
@@ -79,18 +80,18 @@ namespace osu_patch.Conversion
 
 		public IMemberRef ResolveMemberInfo(MemberInfo memberInfo)
 		{
-			if (memberInfo is MethodInfo m && memberInfo.Module.Assembly == Assembly.GetEntryAssembly() && !m.DeclaringType.IsDefined(typeof(CompilerGeneratedAttribute), false))
+			if (memberInfo is MethodInfo m && IsEntryAssemblyMember(memberInfo) && !IsCompilerGenerated(m.DeclaringType) && m.DeclaringType == _sourceDeclaringType)
 			{
-				var methodExplorer = _typeExplorer.FindMethodRaw(memberInfo.Name);
+				var methodSig = MethodInfoToMethodSig(m);
+				var methodExplorer = _typeExplorer.FindMethodRaw(memberInfo.Name, methodSig) ?? _typeExplorer.FindMethodRaw(memberInfo.Name);
 				if (methodExplorer is null)
-				{
-					return _typeExplorer.InsertMethod((MethodAttributes)(int)m.Attributes, m).Method;
-				}
-				else
-				{
-					return methodExplorer.Method;
-				}
+					return _typeExplorer.InsertMethod((MethodAttributes)(int)m.Attributes, m, !m.IsStatic).Method;
+
+				return methodExplorer.Method;
 			}
+
+			if (memberInfo.DeclaringType != null && IsCopyablePatcherType(memberInfo.DeclaringType))
+				return ResolveCopiedPatcherMember(memberInfo);
 
 			if (memberInfo is Type type)
 			{
@@ -100,9 +101,9 @@ namespace osu_patch.Conversion
 			var importedOsuType = ImportAsOsuModuleType(memberInfo.DeclaringType);
 			var importedType = importedOsuType.ResolveTypeDef();
 
-			if (PatcherCache.HasPatcherType(memberInfo.DeclaringType.FullName))
+			if (PatcherCache.HasPatcherType(memberInfo.DeclaringType.FullName, _moduleExplorer.Module))
 			{
-				var patcherType = PatcherCache.GetPatcherType(memberInfo.DeclaringType.FullName);
+				var patcherType = PatcherCache.GetPatcherType(memberInfo.DeclaringType.FullName, _moduleExplorer.Module);
 
 				var member = memberInfo is MethodBase ? 
 					(IMemberRef)patcherType.FindMethod(memberInfo.Name) : 
@@ -242,7 +243,7 @@ namespace osu_patch.Conversion
 
 				case MemberTypes.Method:
 					// TODO: rework dependencies and remove this dirty fix
-					if (importedType.IsSystemType() && !importedType.HasGenericParameters || importedType.Namespace.StartsWith("OpenTK"))
+					if (importedType.IsSystemType() && !importedType.HasGenericParameters || (importedType.Namespace ?? "").StartsWith("OpenTK"))
 						return _moduleExplorer.Module.Import((MethodBase)memberInfo);
 
 					var methodInfo = (MethodInfo)memberInfo;
@@ -282,6 +283,83 @@ namespace osu_patch.Conversion
 					throw new ArgumentOutOfRangeException();
 			}
 		}
+		private IMemberRef ResolveCopiedPatcherMember(MemberInfo memberInfo)
+		{
+			var explorer = EnsurePatcherType(memberInfo.DeclaringType);
+
+			switch (memberInfo.MemberType)
+			{
+				case MemberTypes.Field:
+				{
+					var fieldInfo = (FieldInfo)memberInfo;
+					var field = explorer.FindFieldRawNoThrow(fieldInfo.Name);
+					if (field != null)
+						return field;
+
+					field = new FieldDefUser(fieldInfo.Name, FieldInfoToFieldSig(fieldInfo), (FieldAttributes)(ushort)fieldInfo.Attributes);
+					explorer.Type.Fields.Add(field);
+					return field;
+				}
+				case MemberTypes.Constructor:
+				{
+					var constructorInfo = (ConstructorInfo)memberInfo;
+					var methodSig = MethodInfoToMethodSig(typeof(void), constructorInfo);
+					var method = explorer.FindMethodRaw(constructorInfo.Name, methodSig) ?? explorer.FindMethodRaw(constructorInfo.Name);
+					if (method != null)
+						return method.Method;
+
+					if (constructorInfo.GetMethodBody() == null)
+						return _moduleExplorer.Module.Import((MethodBase)memberInfo);
+
+					return explorer.InsertMethod((MethodAttributes)(int)constructorInfo.Attributes, constructorInfo, true).Method;
+				}
+				case MemberTypes.Method:
+				{
+					var methodInfo = (MethodInfo)memberInfo;
+					var methodSig = MethodInfoToMethodSig(methodInfo);
+					var method = explorer.FindMethodRaw(methodInfo.Name, methodSig) ?? explorer.FindMethodRaw(methodInfo.Name);
+					if (method != null)
+						return method.Method;
+
+					return explorer.InsertMethod((MethodAttributes)(int)methodInfo.Attributes, methodInfo, true).Method;
+				}
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+
+		private TypeExplorer EnsurePatcherType(Type type)
+		{
+			if (PatcherCache.HasPatcherType(type.FullName, _moduleExplorer.Module))
+				return new TypeExplorer(_moduleExplorer, PatcherCache.GetPatcherType(type.FullName, _moduleExplorer.Module), _moduleExplorer.NameProvider);
+
+			var typeDef = new TypeDefUser(type.Namespace, type.Name, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
+			{
+				Attributes = (((TypeAttributes)(uint)type.Attributes) & ~TypeAttributes.VisibilityMask) | TypeAttributes.Public
+			};
+
+			_moduleExplorer.Module.Types.Add(typeDef);
+			PatcherCache.AddType(type.FullName, typeDef);
+
+			var explorer = new TypeExplorer(_moduleExplorer, typeDef, _moduleExplorer.NameProvider);
+			foreach (var fieldInfo in type.GetFields((BindingFlags)int.MaxValue).Where(x => x.DeclaringType == type))
+			{
+				var field = new FieldDefUser(fieldInfo.Name, FieldInfoToFieldSig(fieldInfo), (FieldAttributes)(ushort)fieldInfo.Attributes);
+				explorer.Type.Fields.Add(field);
+			}
+
+			return explorer;
+		}
+
+		private static bool IsEntryAssemblyMember(MemberInfo memberInfo) =>
+			memberInfo.Module.Assembly == Assembly.GetEntryAssembly();
+
+		private static bool IsCompilerGenerated(MemberInfo memberInfo) =>
+			memberInfo != null && memberInfo.IsDefined(typeof(CompilerGeneratedAttribute), false);
+
+		private static bool IsCopyablePatcherType(Type type) =>
+			type.Assembly == Assembly.GetEntryAssembly() && !type.IsGenericParameter && !type.IsSystemType() && !IsCompilerGenerated(type);
+
 
 		public CallingConvention ReflectionToDnLibConvention(CallingConventions refConv)
 		{
@@ -307,6 +385,12 @@ namespace osu_patch.Conversion
 		/// </summary>
 		public ITypeDefOrRef ImportAsOsuModuleType(Type type)
 		{
+			if (PatcherCache.HasPatcherType(type.FullName, _moduleExplorer.Module))
+				return PatcherCache.GetPatcherType(type.FullName, _moduleExplorer.Module);
+
+			if (IsCopyablePatcherType(type))
+				return EnsurePatcherType(type).Type;
+
 			if (type.IsSystemType() || !PatcherCache.IsHookAssembly(type.Assembly) || type.IsGenericParameter) // System types and external dependencies (OpenTK, etc)
 				return _moduleExplorer.Import(type);
 
@@ -366,8 +450,9 @@ namespace osu_patch.Conversion
 				_typeCache[newType.FullName] = newType;
 				_typeCache[newType.ReflectionFullName] = newType;
 			}
-			public static bool HasPatcherType(string name) => name != null && _typeCache.ContainsKey(name);
-			public static TypeDef GetPatcherType(string name) => _typeCache[name];
+			public static bool HasPatcherType(string name, ModuleDef module) =>
+				name != null && _typeCache.TryGetValue(name, out var type) && type.Module == module;
+			public static TypeDef GetPatcherType(string name, ModuleDef module) => _typeCache[name];
 
 			public static bool IsHookAssembly(Assembly ass)
 			{

@@ -24,11 +24,11 @@ namespace osu_patch.Conversion
 		private bool _hasThis;
 
 		public MethodConverter(Delegate del, TypeExplorer type, bool importing = false, bool hasThis = false, bool forceStatic = false) 
-			: this(del.Method, new MemberConverter(type), importing, hasThis, forceStatic) { }
+			: this(del.Method, new MemberConverter(type, del.Method.DeclaringType), importing, hasThis, forceStatic) { }
 		public MethodConverter(MethodInfo meth, TypeExplorer type, bool importing = false, bool hasThis = false, bool forceStatic = false) 
-			: this(meth, new MemberConverter(type), importing, hasThis, forceStatic) { }
+			: this(meth, new MemberConverter(type, meth.DeclaringType), importing, hasThis, forceStatic) { }
 		public MethodConverter(ConstructorInfo meth, TypeExplorer type, bool importing = false, bool hasThis = false) 
-			: this(meth, new MemberConverter(type), importing, hasThis) { }
+			: this(meth, new MemberConverter(type, meth.DeclaringType), importing, hasThis) { }
 
 		public MethodConverter(MethodInfo method, MemberConverter memberConverter, bool importing = false, bool hasThis = false, bool forceStatic = false)
 		{
