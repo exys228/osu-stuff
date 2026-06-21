@@ -1,4 +1,4 @@
-﻿using dnlib.DotNet;
+using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using dnlib.DotNet.MD;
 using osu_patch.Conversion;
@@ -99,7 +99,10 @@ namespace osu_patch.Lib.HookGenerator
 					name = BitConverter.ToString(Encoding.UTF8.GetBytes(name)).Replace("-", "");
 				}
 
-				var newMethod = new MethodDefUser(name, MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), originalMethod.Attributes.ConvertToHookAttributes());
+				var newMethod = new MethodDefUser(name, MethodSig.CreateInstance(_hookModule.CorLibTypes.Void), originalMethod.Attributes.ConvertToHookAttributes())
+				{
+					ImplAttributes = originalMethod.ImplAttributes
+				};
 				if (originalMethod.HasBody)
 				{
 					newMethod.Body = new CilBody();

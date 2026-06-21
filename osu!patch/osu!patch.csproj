@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	  <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
@@ -23,6 +23,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="OsuHooks-256cdbc3.dll" />
     <Content Include="OsuHooks-2e6eaeda.dll" />
     <Content Include="OsuHooks-77801cef.dll" />
     <Content Include="WriteColoredColors.png" />
