@@ -333,18 +333,35 @@ namespace osu_patch.Conversion
 			if (PatcherCache.HasPatcherType(type.FullName, _moduleExplorer.Module))
 				return new TypeExplorer(_moduleExplorer, PatcherCache.GetPatcherType(type.FullName, _moduleExplorer.Module), _moduleExplorer.NameProvider);
 
-			var typeDef = new TypeDefUser(type.Namespace, type.Name, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
-			{
-				Attributes = (((TypeAttributes)(uint)type.Attributes) & ~TypeAttributes.VisibilityMask) | TypeAttributes.Public
-			};
+			var sourceAttributes = (TypeAttributes)(uint)type.Attributes;
+			TypeDefUser typeDef;
 
-			_moduleExplorer.Module.Types.Add(typeDef);
+			if (type.IsNested)
+			{
+				var declaringType = EnsurePatcherType(type.DeclaringType);
+				typeDef = new TypeDefUser(string.Empty, type.Name, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
+				{
+					Attributes = (sourceAttributes & ~TypeAttributes.VisibilityMask) | TypeAttributes.NestedPublic
+				};
+				declaringType.Type.NestedTypes.Add(typeDef);
+			}
+			else
+			{
+				typeDef = new TypeDefUser(type.Namespace, type.Name, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
+				{
+					Attributes = (sourceAttributes & ~TypeAttributes.VisibilityMask) | TypeAttributes.Public
+				};
+				_moduleExplorer.Module.Types.Add(typeDef);
+			}
+
 			PatcherCache.AddType(type.FullName, typeDef);
 
 			var explorer = new TypeExplorer(_moduleExplorer, typeDef, _moduleExplorer.NameProvider);
 			foreach (var fieldInfo in type.GetFields((BindingFlags)int.MaxValue).Where(x => x.DeclaringType == type))
 			{
-				var field = new FieldDefUser(fieldInfo.Name, FieldInfoToFieldSig(fieldInfo), (FieldAttributes)(ushort)fieldInfo.Attributes);
+				var fieldAttributes = (FieldAttributes)(ushort)fieldInfo.Attributes;
+				fieldAttributes = (fieldAttributes & ~FieldAttributes.FieldAccessMask) | FieldAttributes.Public;
+				var field = new FieldDefUser(fieldInfo.Name, FieldInfoToFieldSig(fieldInfo), fieldAttributes);
 				explorer.Type.Fields.Add(field);
 			}
 
@@ -358,7 +375,7 @@ namespace osu_patch.Conversion
 			memberInfo != null && memberInfo.IsDefined(typeof(CompilerGeneratedAttribute), false);
 
 		private static bool IsCopyablePatcherType(Type type) =>
-			type.Assembly == Assembly.GetEntryAssembly() && !type.IsGenericParameter && !type.IsSystemType() && !IsCompilerGenerated(type);
+			type.Assembly == Assembly.GetEntryAssembly() && !type.IsGenericParameter && !type.IsSystemType();
 
 
 		public CallingConvention ReflectionToDnLibConvention(CallingConventions refConv)
@@ -385,6 +402,14 @@ namespace osu_patch.Conversion
 		/// </summary>
 		public ITypeDefOrRef ImportAsOsuModuleType(Type type)
 		{
+			if (type.IsArray)
+			{
+				var elementType = ImportAsOsuModuleType(type.GetElementType()).ToTypeSig();
+				return new TypeSpecUser(type.GetArrayRank() == 1
+					? (TypeSig)new SZArraySig(elementType)
+					: new ArraySig(elementType, (uint)type.GetArrayRank()));
+			}
+
 			if (PatcherCache.HasPatcherType(type.FullName, _moduleExplorer.Module))
 				return PatcherCache.GetPatcherType(type.FullName, _moduleExplorer.Module);
 
@@ -406,7 +431,7 @@ namespace osu_patch.Conversion
 				var genArgs = new List<TypeSig>();
 				for (var i = 0; i < typeGenericArguments.Length; i++)
 				{
-					var genericType = ImportAsOsuModuleType(typeGenericArguments[i]).ResolveTypeDef();
+					var genericType = ImportAsOsuModuleType(typeGenericArguments[i]);
 					genArgs.Add(genericType.ToTypeSig());
 				}
 
@@ -458,12 +483,14 @@ namespace osu_patch.Conversion
 			{
 				var guid = ass.GetAssemblyGuid();
 
-				if (_guidCache.Contains(guid))
+				if (guid != null && _guidCache.Contains(guid))
 					return true;
 
 				if (ass.CustomAttributes.Any(x => x.AttributeType.Name == HookGenerator.IDENTIFICATION_ATTRIBUTE_NAME))
 				{
-					_guidCache.Add(guid);
+					if (guid != null)
+						_guidCache.Add(guid);
+
 					return true;
 				}
 
