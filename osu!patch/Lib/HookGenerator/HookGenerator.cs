@@ -336,7 +336,7 @@ namespace osu_patch.Lib.HookGenerator
 		public static FieldAttributes ConvertToHookAttributes(this FieldAttributes originalAttrs)
 		{
 			var newAttrs = originalAttrs;
-			newAttrs &= ~(FieldAttributes.Assembly | FieldAttributes.Private);
+			newAttrs &= ~(FieldAttributes.Assembly | FieldAttributes.Private | FieldAttributes.HasFieldRVA);
 			newAttrs |= FieldAttributes.Public;
 			return newAttrs;
 		}

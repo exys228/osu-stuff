@@ -328,7 +328,7 @@ namespace osu_patch.Conversion
 			}
 		}
 
-		private TypeExplorer EnsurePatcherType(Type type)
+		private TypeExplorer EnsurePatcherType(Type type, bool copyTypeInitializer = true)
 		{
 			if (PatcherCache.HasPatcherType(type.FullName, _moduleExplorer.Module))
 				return new TypeExplorer(_moduleExplorer, PatcherCache.GetPatcherType(type.FullName, _moduleExplorer.Module), _moduleExplorer.NameProvider);
@@ -338,7 +338,7 @@ namespace osu_patch.Conversion
 
 			if (type.IsNested)
 			{
-				var declaringType = EnsurePatcherType(type.DeclaringType);
+				var declaringType = EnsurePatcherType(type.DeclaringType, false);
 				typeDef = new TypeDefUser(string.Empty, type.Name, _moduleExplorer.CorLibTypes.Object.TypeDefOrRef)
 				{
 					Attributes = (sourceAttributes & ~TypeAttributes.VisibilityMask) | TypeAttributes.NestedPublic
@@ -366,7 +366,7 @@ namespace osu_patch.Conversion
 			}
 
 			var typeInitializer = type.TypeInitializer;
-			if (typeInitializer != null && typeInitializer.GetMethodBody() != null)
+			if (copyTypeInitializer && IsCompilerGenerated(type) && typeInitializer != null && typeInitializer.GetMethodBody() != null)
 			{
 				var methodSig = MethodInfoToMethodSig(typeof(void), typeInitializer);
 				if (explorer.FindMethodRaw(typeInitializer.Name, methodSig) == null && explorer.FindMethodRaw(typeInitializer.Name) == null)
