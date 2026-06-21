@@ -1,6 +1,5 @@
 # osu!stuff
-A collection of my projects dedicated to osu! patching.
-<sub><em>Originally brought to you by @exys228. Maintained by @xxCherry from time to time.</em></sub>
+A collection of my projects dedicated to osu! patching.<br><sub><em>Originally brought to you by @exys228. Maintained by @xxCherry from time to time.</em></sub>
 
 ### NameMapper
 Library used to deobfuscate names in obfuscated assembly while having a deobfuscated one already.
