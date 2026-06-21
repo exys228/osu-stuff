@@ -1,4 +1,4 @@
-﻿using dnlib.DotNet;
+using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using dnlib.DotNet.MD;
 using osu_patch.Explorers;
@@ -91,22 +91,23 @@ namespace osu_patch.Conversion
 			_body[_position++];
 		#endregion
 
-		public BodyConverter(Delegate del, ModuleExplorer osuModule) : this(del, new MemberConverter(osuModule)) { }
+		public BodyConverter(MethodBase method, TypeExplorer type) : this(method, new MemberConverter(type)) { }
 
-		public BodyConverter(Delegate del, MemberConverter memberConverter)
+		public BodyConverter(MethodBase method, MemberConverter memberConverter, bool importing = false)
 		{
-			var methBody = del.Method.GetMethodBody() ?? throw new Exception("Unable to get method body!");
+			var methBody = method.GetMethodBody() ?? throw new Exception("Unable to get method body!");
 
-			_parameters = del.Method.GetParameters();
+			_parameters = method.GetParameters();
 			_locals = methBody.LocalVariables;
 			_handlers = methBody.ExceptionHandlingClauses;
 			_body = methBody.GetILAsByteArray();
 			_initLocals = methBody.InitLocals;
 
-			_patchModule = del.Method.Module;
+			_patchModule = method.Module;
+
 			_memberConverter = memberConverter;
 
-			_decreaseLdargRank = (del.Method.Attributes & System.Reflection.MethodAttributes.Static) == 0; // not static
+			_decreaseLdargRank = (method.Attributes & System.Reflection.MethodAttributes.Static) == 0 && !importing; // not static
 
 			Result = null;
 		}
@@ -176,6 +177,7 @@ namespace osu_patch.Conversion
 				newInstr.Offset = (uint)(_position - 1);
 
 				MDToken mdToken;
+				MemberInfo mb;
 
 				switch (opCode.OperandType)
 				{
@@ -191,13 +193,18 @@ namespace osu_patch.Conversion
 						break;
 
 					case OperandType.InlineField:
-						newInstr.Operand = _memberConverter.ResolveMemberInfo(_patchModule.ResolveField(ReadInt32()));
+						mdToken = new MDToken(ReadInt32());
+
+						if (mdToken.Table == Table.MemberRef)
+							mb = _patchModule.ResolveMember((int)mdToken.Raw);
+						else
+							mb = _patchModule.ResolveField((int)mdToken.Raw);
+
+						newInstr.Operand = _memberConverter.ResolveMemberInfo(mb);
 						break;
 
 					case OperandType.InlineMethod:
 						mdToken = new MDToken(ReadInt32());
-
-						MemberInfo mb;
 
 						if (mdToken.Table == Table.MemberRef)
 							mb = _patchModule.ResolveMember((int)mdToken.Raw);
@@ -267,7 +274,6 @@ namespace osu_patch.Conversion
 							branchesToFill.Add(newInstr, sDest);
 						else
 							newInstr.Operand = newInstrs[sDest];
-
 						break;
 
 					case OperandType.ShortInlineI:
@@ -280,7 +286,7 @@ namespace osu_patch.Conversion
 
 					case OperandType.ShortInlineVar:
 						if (IsArgOperand(newInstr.OpCode))
-							newInstr.Operand = parameters[ReadByte() - 1]; // not sure if i should leave this here (i'm about that - 1), but it works. Maybe try with static methods?
+							newInstr.Operand = parameters[_decreaseLdargRank ? ReadByte() - 1 : ReadByte()]; // not sure if i should leave this here (i'm about that - 1), but it works. Maybe try with static methods?
 						else
 							newInstr.Operand = locals[ReadByte()];
 						break;

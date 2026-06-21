@@ -11,7 +11,7 @@ namespace OsuPatchPlugin.SilentOsuDirect
 	{
 		public IEnumerable<Patch> GetPatches() => new Patch[]
 		{
-			new Patch("UpdateStatus patch", (patch, exp) =>
+			new Patch("UpdateStatus patch", (patcher, patch, exp) =>
 			{
 				// Remove "OsuDirect" status on Bancho
 				var updateStatus = exp["osu.Online.BanchoClient"]["UpdateStatus"].Editor;
@@ -33,7 +33,7 @@ namespace OsuPatchPlugin.SilentOsuDirect
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Download server patch", (patch, exp) =>
+			new Patch("Download server patch", (patcher, patch, exp) =>
 			{
 				// Patch download server to storage.ainu.pw (that's me)
 				var osuDirectServer = exp["osu.Online.OsuDirectDownload"].FindMethodRaw(".ctor", 
@@ -118,7 +118,7 @@ namespace OsuPatchPlugin.SilentOsuDirect
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
 			*/
-			new Patch("Enable osu!direct", (patch, exp) =>
+			new Patch("Enable osu!direct", (patcher, patch, exp) =>
 			{
 				// Remove supporter check
 				var removeSupporterCheck = exp["osu.GameModes.Menus.Menu"]["checkPermissions"].Editor;
@@ -214,7 +214,7 @@ namespace OsuPatchPlugin.SilentOsuDirect
 				*/
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Search server patch", (patch, exp) =>
+			new Patch("Search server patch", (patcher, patch, exp) =>
 			{
 				return new PatchResult(patch, PatchStatus.Success);
 			}),

@@ -1,80 +1,15 @@
-﻿using dnlib.DotNet;
-using dnlib.DotNet.Emit;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
+﻿using dnlib.DotNet.Emit;
 
-using osu_common.Updater;
-
-using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using OpCodes = dnlib.DotNet.Emit.OpCodes;
 
 namespace osu_patch
 {
-	static class LocalPatches
+	public static class LocalPatches
 	{
 		public static readonly Patch[] PatchList = // i thought that separating necessary patches from other ones would be better, so patches down below are 'vital' for running patched osu! without any problems
 		{
-			new Patch("\"Unsigned executable\" fix", (patch, exp) =>
+			new Patch("\"Unsigned executable\" fix", (patcher, patch, exp) =>
 			{
-				/*var meth = exp["osu_common.Helpers.pWebRequest"].InsertMethod(MethodAttributes.Public, delegate (pWebRequest @this)
-				{
-					NotificationManager.ShowMessage("osu!patched");
-
-					try
-					{
-						Console.WriteLine(123.456d);
-						// @this.set_Url("https://exys228.com/");
-						// @this.CreateWebRequest();
-					}
-					catch
-					{
-						Console.WriteLine();
-						throw;
-					}
-
-					try
-					{
-						// OsuDirect.StartDownload(new OsuDirectDownload(12345, "filename.osz", "title?", true, 54321));
-						Console.ReadLine();
-						Console.WriteLine("Hello World");
-					}
-					finally
-					{
-						Console.WriteLine();
-					}
-
-					switch (Console.ReadKey().Key)
-					{
-						case ConsoleKey.Backspace:
-							Console.WriteLine("1");
-
-							break;
-
-						case ConsoleKey.Tab:
-							Console.WriteLine("1aaaaaaa2");
-
-							break;
-
-						case ConsoleKey.Clear:
-							break;
-					}
-
-					return "";
-				});
-
-				meth.Method.Name = "FUCKhead";
-				var sdasddada = exp["osu_common.Helpers.pWebRequest"];
-				exp["osu_common.Helpers.pWebRequest"]["CreateWebRequest"].Editor.InsertCall(meth.Method);*/
-
-				/*	--   REMOVES THIS   \/ \/ \/ \/ \/ \/ \/
-					if (!AuthenticodeTools.IsTrusted(OsuMain.get_Filename()))
-					{
-						new ErrorDialog(new Exception("Unsigned executable!"), false).ShowDialog();
-						Environment.Exit(0);
-					}
-				*/
 				exp["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
 				{
 					OpCodes.Call,
@@ -93,7 +28,7 @@ namespace osu_patch
 
 				return patch.Result(PatchStatus.Success);
 			}),
-			new Patch("Bancho MD5 hash of osu!.exe fix", (patch, exp) =>
+			new Patch("Bancho MD5 hash of osu!.exe fix", (patcher, patch, exp) =>
 			{
 				var method = exp["osu.Online.BanchoClient"]["initializePrivate"];
 
@@ -114,149 +49,16 @@ namespace osu_patch
 				method.Editor.Nop(2);
 
 				// replace CryptoHelper.GetMd5(OsuMain.get_FullPath()) with "ORIGINAL_MD5_HASH"
-				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, OsuPatcher.ObfOsuHash));
+				method.Editor.Insert(Instruction.Create(OpCodes.Ldstr, patcher.OsuHash));
 				return patch.Result(PatchStatus.Success);
 			}),
-			new Patch("\"Patch on update\" patch", (patch, exp) =>
+			new Patch("Remove Filename check", (patcher, patch, exp) =>
 			{
-				#region Patch() function
+				var osuMain = exp["osu.OsuMain"];
+				var editor = osuMain["get_Filename"].Editor;
 
-				var type = exp["osu_common.Updater.CommonUpdater"];
-				var MoveInPlace = type["MoveInPlace"];
-
-				/*
-					if (CommonUpdater.SafelyMove(text, fileName, 200, 5, allowDefiniteMove))
-					{
-						if(fileName == "osu!.exe") // <======== INSERTS THIS
-							Patch();			   // <========
-						
-						CommonUpdater.Log("{0} => {1}: OK", new object[]
-						{
-							text,
-							fileName
-						});
-						ConfigManagerCompact.Configuration["h_" + fileName] = CommonUpdater.getMd5(fileName, false);
-					}
-				*/
-
-				MoveInPlace.Editor.Locate(new[]
-				{
-					null,
-					null,
-					OpCodes.Ldc_I4_2,
-					OpCodes.Newarr,
-					OpCodes.Dup,
-					OpCodes.Ldc_I4_0,
-					OpCodes.Ldloc_0,
-					OpCodes.Stelem_Ref,
-					OpCodes.Dup,
-					OpCodes.Ldc_I4_1
-				});
-
-				var patchMethod = type.InsertMethod(MethodAttributes.Public | MethodAttributes.Static, () => // Yes.
-				{
-					if (File.Exists("osu!patch\\osu!patch.exe"))
-					{
-						Process process = new Process
-						{
-							StartInfo =
-							{
-								FileName = "osu!patch\\osu!patch.exe",
-								Arguments = "osu!patch\\clean.exe osu!.exe",
-								WorkingDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
-							}
-						};
-
-						process.Start();
-						process.WaitForExit();
-
-						if (process.ExitCode == 0)
-						{
-							CommonUpdater.SafelyMove("osu!-osupatch.exe", "osu!.exe", 200, 5, true);
-							return;
-						}
-					}
-				});
-
-				patchMethod.Method.Name = "_OsuPatch_Patch"; 
-
-				var op_Equality = exp.Module.CreateMethodRef(true, typeof(string), "op_Equality", typeof(bool), typeof(string), typeof(string));
-
-				MoveInPlace.Editor.Insert(new[] // if (fileName == "osu!.exe") Patch();
-				{
-					Instruction.Create(OpCodes.Ldloc_1),
-					Instruction.Create(OpCodes.Ldstr, "osu!.exe"),
-					Instruction.Create(OpCodes.Call, op_Equality),
-					Instruction.Create(OpCodes.Brfalse, MoveInPlace[MoveInPlace.Editor.Position]), // at this moment Position is the LAST instruction so that means brtrue to pos AFTER inserted instructions
-					Instruction.Create(OpCodes.Call, patchMethod.Method)
-				});
-
-				MoveInPlace.Body.SimplifyBranches();
-				MoveInPlace.Body.OptimizeBranches();
-
-				#endregion
-				#region Update only if there's an actual update, not just hash is invalid
-
-				var doUpdate = type["doUpdate"];
-
-				/* 
-					  After:
-					  DownloadableFileInfo downloadableFileInfo = enumerator.Current;
-					  if(flag)
-					  {
-					  ...
-				*/
-
-				doUpdate.Editor.Locate(new[]
-				{
-					OpCodes.Ldloc_S,
-					OpCodes.Brfalse,
-					null,
-					null,
-					OpCodes.Ldc_I4_0,
-					OpCodes.Newarr,
-					OpCodes.Call
-				});
-
-				int brfalseOcc = doUpdate.Editor.Locate(new[]
-				{
-					OpCodes.Ldloca_S,
-					OpCodes.Call,
-					OpCodes.Brtrue,
-					OpCodes.Leave,
-					OpCodes.Ldloc_0,
-					OpCodes.Ldfld,
-					null,
-					null,
-					OpCodes.Call
-				}, false);
-
-				FieldDef fldFilename = exp.Module.Find("osu_common.Updater.UpdaterFileInfo", false)?.FindField("filename");
-				FieldDef fldHash = exp.Module.Find("osu_common.Updater.UpdaterFileInfo", false)?.FindField("file_hash");
-
-				if (fldFilename == null || fldHash == null)
-					return patch.Result(PatchStatus.Failure, "Unable to locate UpdaterFileInfo.filename or UpdaterFileInfo.file_hash");
-
-				var op_Inequality = exp.Module.CreateMethodRef(true, typeof(String), "op_Inequality", typeof(bool), typeof(string), typeof(string));
-
-				doUpdate.Editor.Insert(new[] // if (downloadableFile.filename != "osu!.exe" || downloadableFile.file_hash != ORIGINAL_OSU_HASH)
-				{
-					Instruction.Create(OpCodes.Ldloc_0),
-					Instruction.Create(OpCodes.Ldfld, fldFilename),
-					Instruction.Create(OpCodes.Ldstr, "osu!.exe"),
-					Instruction.Create(OpCodes.Call, op_Inequality),
-					Instruction.Create(OpCodes.Brtrue, doUpdate[doUpdate.Editor.Position]),
-					Instruction.Create(OpCodes.Ldloc_0),
-					Instruction.Create(OpCodes.Ldfld, fldHash),
-					Instruction.Create(OpCodes.Ldstr, OsuPatcher.ObfOsuHash),
-					Instruction.Create(OpCodes.Call, op_Inequality),
-					Instruction.Create(OpCodes.Brfalse, doUpdate[brfalseOcc])
-				});
-
-				doUpdate.Body.SimplifyBranches();
-				doUpdate.Body.OptimizeBranches();
-
-				#endregion
+				editor.InsertAt(0, Instruction.Create(OpCodes.Ret));
+				editor.InsertAt(0, Instruction.Create(OpCodes.Ldstr, "osu!.exe"));
 
 				return patch.Result(PatchStatus.Success);
 			})

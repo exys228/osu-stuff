@@ -1,4 +1,4 @@
-﻿using dnlib.DotNet;
+using dnlib.DotNet;
 using osu_patch.Explorers;
 using System;
 using System.Collections.Generic;
@@ -20,21 +20,35 @@ namespace osu_patch.Conversion
 
 		private BodyConverter _bodyConverter;
 		private MemberConverter _memberConverter;
-
+		
 		private bool _hasThis;
 
-		public MethodConverter(Delegate del, ModuleExplorer osuModule, bool hasThis = false) : this(del, new MemberConverter(osuModule), hasThis) { }
+		public MethodConverter(Delegate del, TypeExplorer type, bool importing = false, bool hasThis = false, bool forceStatic = false) 
+			: this(del.Method, new MemberConverter(type, del.Method.DeclaringType), importing, hasThis, forceStatic) { }
+		public MethodConverter(MethodInfo meth, TypeExplorer type, bool importing = false, bool hasThis = false, bool forceStatic = false) 
+			: this(meth, new MemberConverter(type, meth.DeclaringType), importing, hasThis, forceStatic) { }
+		public MethodConverter(ConstructorInfo meth, TypeExplorer type, bool importing = false, bool hasThis = false) 
+			: this(meth, new MemberConverter(type, meth.DeclaringType), importing, hasThis) { }
 
-		public MethodConverter(Delegate del, MemberConverter memberConverter, bool hasThis = false)
+		public MethodConverter(MethodInfo method, MemberConverter memberConverter, bool importing = false, bool hasThis = false, bool forceStatic = false)
 		{
-			var meth = del.Method;
-
-			_name = meth.Name;
+			_name = method.Name;
 			_memberConverter = memberConverter;
-			_methodSig = memberConverter.MethodInfoToMethodSig(meth, hasThis);
-			_parameters = new List<ParameterInfo>(meth.GetParameters());
-			_returnType = meth.ReturnType;
-			_bodyConverter = new BodyConverter(del, memberConverter);
+			_methodSig = memberConverter.MethodInfoToMethodSig(method, hasThis, forceStatic);
+			_parameters = new List<ParameterInfo>(method.GetParameters());
+			_returnType = method.ReturnType;
+			_bodyConverter = new BodyConverter(method, memberConverter, importing);
+			_hasThis = hasThis;
+		}
+		
+		public MethodConverter(ConstructorInfo constructor, MemberConverter memberConverter, bool importing = false, bool hasThis = false)
+		{
+			_name = constructor.Name;
+			_memberConverter = memberConverter;
+			_methodSig = memberConverter.MethodInfoToMethodSig(typeof(void), constructor);
+			_parameters = new List<ParameterInfo>(constructor.GetParameters());
+			_returnType = typeof(void);
+			_bodyConverter = new BodyConverter(constructor, memberConverter, importing);
 			_hasThis = hasThis;
 		}
 
@@ -43,8 +57,10 @@ namespace osu_patch.Conversion
 
 		public MethodDefUser ToMethodDef(bool forceBodyRebuild = false)
 		{
-			var newMethodDef = new MethodDefUser(_name, _methodSig, MethodImplAttributes.IL | MethodImplAttributes.Managed);
-			newMethodDef.Body = _bodyConverter.ToCilBody(forceBodyRebuild);
+			var newMethodDef = new MethodDefUser(_name, _methodSig, MethodImplAttributes.IL | MethodImplAttributes.Managed)
+			{
+				Body = _bodyConverter.ToCilBody(forceBodyRebuild)
+			};
 
 			var idx = _hasThis ? 1 : 0;
 

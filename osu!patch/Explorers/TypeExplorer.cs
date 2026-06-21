@@ -1,6 +1,7 @@
-﻿using dnlib.DotNet;
+using dnlib.DotNet;
 using osu_patch.Conversion;
 using osu_patch.Exceptions;
+using osu_patch.Extensions;
 using osu_patch.Naming;
 using System;
 using System.Collections.Generic;
@@ -32,25 +33,45 @@ namespace osu_patch.Explorers
 		public MethodExplorer FindMethod(string name, MethodSig sig = null)
 		{
 			var obfName = NameProvider.GetName(name);
-			var result = (sig is null ? Type.FindMethod(obfName) : Type.FindMethod(obfName, sig)) ?? throw CreateException("method");
-
-			return new MethodExplorer(this, result);
+			var result = sig is null
+				? (obfName != null ? Type.FindMethod(obfName) : null) ?? Type.FindMethod(name)
+				: (obfName != null ? Type.FindMethod(obfName, sig) : null) ?? Type.FindMethod(name, sig);
+			
+			return new MethodExplorer(this, result ?? throw CreateException("method"));
 		}
 
 		public MethodExplorer FindMethodRaw(string name, MethodSig sig = null)
 		{
 			var method = sig is null ? Type.FindMethod(name) : Type.FindMethod(name, sig);
-
-			return new MethodExplorer(this, method ?? throw CreateException("method"));
+			
+			return method != null ? new MethodExplorer(this, method) : null;
 		}
 
-		public FieldDef FindField(string name) => Type.FindField(NameProvider.GetName(name)) ?? throw CreateException("field");
+		public MethodExplorer FindMethodRawThrow(string name, MethodSig sig = null)
+		{
+			return FindMethodRaw(name, sig) ?? throw CreateException("method");
+		}
+
+		public FieldDef FindField(string name) =>
+			(NameProvider.GetName(name) is string obfName ? Type.FindField(obfName) : null) ?? Type.FindField(name) ?? throw CreateException("field");
 
 		public FieldDef FindFieldRaw(string name) => Type.FindField(name) ?? throw CreateException("field");
+		public FieldDef FindFieldRawNoThrow(string name) => Type.FindField(name);
+		public TypeExplorer FindNestedType(string name)
+		{
+			var obfName = NameProvider.GetName(name);
+			var type = (obfName != null ? Type.NestedTypes.FirstOrDefault(x => x.Name == obfName) : null) ?? Type.NestedTypes.FirstOrDefault(x => x.Name == name);
+			return new TypeExplorer(this, type ?? throw CreateException("type"), NameProvider);
+		}
 
-		public TypeExplorer FindNestedType(string name) => new TypeExplorer(this, Type.NestedTypes.FirstOrDefault(x => x.Name == NameProvider.GetName(name)) ?? throw CreateException("type"), NameProvider);
+		public TypeExplorer FindNestedTypeRaw(string name) {
+			var type = Type.NestedTypes.FirstOrDefault(x => x.Name == name);
+			if (type is null)
+				return null;
+			return type != null ? new TypeExplorer(this, type, NameProvider) : null;
+		}
 
-		public TypeExplorer FindNestedTypeRaw(string name) => new TypeExplorer(this, Type.NestedTypes.FirstOrDefault(x => x.Name == name) ?? throw CreateException("type"), NameProvider);
+		public TypeExplorer FindNestedTypeRawThrow(string name) => FindNestedTypeRaw(name) ?? throw CreateException("type");
 
 		#region InsertMethod conversion methods
 
@@ -164,13 +185,13 @@ namespace osu_patch.Explorers
 
 		// --
 		#endregion
-
-		public MethodExplorer InsertMethod(MethodAttributes attributes, Delegate del)
+		public MethodExplorer InsertMethod(MethodAttributes attributes, Delegate del) => InsertMethod(attributes, del.Method);
+		public MethodExplorer InsertMethod(MethodAttributes attributes, MethodBase method, bool importing = false)
 		{
 			var hasThis = false;
-			var paramList = new List<ParameterInfo>(del.Method.GetParameters());
+			var paramList = new List<ParameterInfo>(method.GetParameters());
 
-			if ((attributes & MethodAttributes.Static) == 0)
+			if ((attributes & MethodAttributes.Static) == 0 && !importing)
 			{
 				if(paramList.Count == 0)
 					throw new Exception("First argument is this-dummy and must be same type as instance-class in which this method is being injected in.");
@@ -178,12 +199,19 @@ namespace osu_patch.Explorers
 				paramList.RemoveAt(0);
 				hasThis = true;
 			}
+			
+			var forceStatic = (attributes & MethodAttributes.Static) != 0;
+			MethodExplorer convertedMethodDef;
+			
+			if (method is MethodInfo)
+				convertedMethodDef = new MethodConverter(method as MethodInfo, this, importing, hasThis, forceStatic).ToMethodExplorer();
+			else
+				convertedMethodDef = new MethodConverter(method as ConstructorInfo, this, importing, hasThis).ToMethodExplorer();
 
-			var convertedMethodDef = new MethodConverter(del, this.GetRoot(), hasThis).ToMethodExplorer();
 			convertedMethodDef.Method.Attributes = attributes | MethodAttributes.HideBySig;
 
-			foreach (var param in paramList)
-				convertedMethodDef.Method.ParamDefs.Add(new ParamDefUser(param.Name, (ushort)param.Position, (ParamAttributes)param.Attributes));
+			//foreach (var param in paramList)
+			//	convertedMethodDef.Method.ParamDefs.Add(new ParamDefUser(param.Name, (ushort)param.Position, (ParamAttributes)param.Attributes));
 
 			Type.Methods.Add(convertedMethodDef.Method);
 			return convertedMethodDef;

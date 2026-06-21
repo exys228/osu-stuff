@@ -1,4 +1,5 @@
 ﻿using dnlib.DotNet;
+using dnlib.DotNet.Writer;
 using System;
 using System.IO;
 
@@ -7,6 +8,11 @@ namespace osu_patch.Lib.HookGenerator.CLI
 	public static class Program
 	{
 		private static ModuleDefMD _originalModule;
+		private const MetadataFlags DEFAULT_METADATA_FLAGS = MetadataFlags.PreserveRids |
+													 MetadataFlags.PreserveUSOffsets |
+													 MetadataFlags.PreserveBlobOffsets |
+													 MetadataFlags.PreserveExtraSignatureData |
+													 MetadataFlags.KeepOldMaxStack;
 
 		public static int Main(string[] args)
 		{

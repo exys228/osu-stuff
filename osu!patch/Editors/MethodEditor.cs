@@ -3,6 +3,7 @@ using dnlib.DotNet.Emit;
 using osu_patch.Conversion;
 using osu_patch.Exceptions;
 using osu_patch.Explorers;
+using osu_patch.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -215,7 +216,7 @@ namespace osu_patch.Editors
 		/// Read <paramref name="delegate"/>'s body as IL and insert it at specified index
 		/// </summary>
 		public void InsertAt(int index, Delegate @delegate) =>
-			InsertAt(index, new BodyConverter(@delegate, Parent.GetRoot()).ToCilBody().Instructions.Where(x => x.OpCode != OpCodes.Ret).ToList());
+			InsertAt(index, new BodyConverter(@delegate.Method, (TypeExplorer)Parent.GetParent()).ToCilBody().Instructions.Where(x => x.OpCode != OpCodes.Ret).ToList());
 
 		// -- Insert call to MethodDef
 

@@ -28,7 +28,7 @@ namespace OsuPatchPlugin.Misc
 #else
 		public IEnumerable<Patch> GetPatches() => new[]
 		{
-			new Patch("Local offset change while paused", (patch, exp) =>
+			new Patch("Local offset change while paused", (patcher, patch, exp) =>
 			{
 				// literally first 10 instructions
 				exp["osu.GameModes.Play.Player"]["ChangeCustomOffset"].Editor.LocateAndNop(new[]
@@ -52,67 +52,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Saving failed replays", (patch, exp) =>
-			{
-				var Player = exp["osu.GameModes.Play.Player"];
-				var onKeyPressed = Player["onKeyPressed"];
-
-				var loc = onKeyPressed.Editor.Locate(new[]
-				{
-					OpCodes.Ldsfld,    // 0 
-					OpCodes.Brfalse,   // 1
-					OpCodes.Call,	   // 2
-					OpCodes.Brtrue,	   // 3
-					OpCodes.Ldsfld,    // 4 
-					OpCodes.Brfalse_S, // 5
-					OpCodes.Ldarg_2,   // 6
-					OpCodes.Ldc_I4_S,  // 7
-					OpCodes.Bne_Un_S,  // 8
-					OpCodes.Ldsfld,	   // 9
-					OpCodes.Brfalse_S, // 10
-					OpCodes.Ldarg_0,   // 11 // NOP
-					OpCodes.Call,	   // 12 // NOP // this.HandleScoreSubmission();
-					OpCodes.Ldsfld,	   // 13
-					OpCodes.Stsfld,	   // 14
-					OpCodes.Ldc_I4_1,  // 15
-					OpCodes.Call,	   // 16
-					OpCodes.Ldc_I4_1,  // 17
-					OpCodes.Stsfld,	   // 18
-					OpCodes.Ldc_I4_2,  // 19
-					OpCodes.Ldc_I4_1,  // 20
-					OpCodes.Ldc_I4_0,  // 21
-					OpCodes.Call,	   // 22
-					OpCodes.Ldc_I4_1,  // 23
-					OpCodes.Ret		   // 24 
-				}, false);
-
-				var ExportReplay = exp["osu.GameplayElements.Scoring.ScoreManager"]["ExportReplay"].Method;
-				var currentScore = Player.FindField("currentScore");
-
-				onKeyPressed.Editor.NopAt(loc + 11, 2);
-				onKeyPressed.Editor.InsertAt(loc + 15, new[]
-				{
-					Instruction.Create(OpCodes.Ldsfld, currentScore),
-					Instruction.Create(OpCodes.Ldc_I4_1),
-					Instruction.Create(OpCodes.Call, ExportReplay),
-					Instruction.Create(OpCodes.Pop)
-				});
-
-				/*
-				if (Player.Failed && k == Keys.F1 && Player.currentScore != null)
-				{
-					this.HandleScoreSubmission(); <<< removing (noping) this
-					InputManager.ReplayScore = Player.currentScore;
-					ScoreManager.ExportReplay(Player.currentScore, true); <<< Inserts this
-					InputManager.set_ReplayMode(true);
-					InputManager.ReplayToEnd = true;
-					GameBase.ChangeModeInstant(OsuModes.Play, true, 0);
-					return true;
-				} 
-				*/
-				return new PatchResult(patch, PatchStatus.Success);
-			}),
-			new Patch("Smooth cursor trail", (patch, exp) =>
+			new Patch("Smooth cursor trail", (patcher, patch, exp) =>
 			{
 				var add = exp["osu.Graphics.Renderers.CursorTrailRenderer"]["add"].Editor;
 				var loc = add.Locate(new[]
@@ -151,7 +91,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("No minimum delay before pausing again", (patch, exp) =>
+			new Patch("No minimum delay before pausing again", (patcher, patch, exp) =>
 			{
 				// first 27 instructions
 				exp["osu.GameModes.Play.Player"]["togglePause"].Editor.LocateAndNop(new[]
@@ -187,7 +127,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("No \"mouse buttons are disabled\" message", (patch, exp) =>
+			new Patch("No \"mouse buttons are disabled\" message", (patcher, patch, exp) =>
 			{
 				/*
 				 *	if (!warningMouseButtonsDisabled && ConfigManager.sMouseDisableButtons)
@@ -221,7 +161,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Don't send frames to spectators (NoSpectator)", (patch, exp) =>
+			new Patch("Don't send frames to spectators (NoSpectator)", (patcher, patch, exp) =>
 			{
 				/*
 				 * exp.Options.Add();
@@ -282,24 +222,6 @@ namespace OsuPatchPlugin.Misc
 
 				// Null operands, idk what causing this atm
 
-				/*OptionsEditor.InsertAt(OptionsLoc + 6, (Options @this) =>
-				{
-					// Putting something as OsuString will causing that compiler won't want to give us the dll, 
-				    // maybe if you make your own OsuString it will work, idk
-					@this.Add(new OptionCategory(0, (FontAwesome)0xF09B)
-					{
-						children = new[]
-						{
-							new OptionSection("Custom")
-							{
-								children = new OptionElement[]
-								{
-									new OptionCheckbox("No Spectators", "Players can't spectate you", true)
-								}
-							}
-						}
-					}); 
-				}); */
 
 				OptionsEditor.InsertAt(OptionsLoc + 6, new[]
 				{
@@ -372,7 +294,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);
 			}),
-			new Patch("Don't send anti-cheat flags to Bancho", (patch, exp) =>
+			new Patch("Don't send anti-cheat flags to Bancho", (patcher, patch, exp) =>
 			{
 				// Startup flags 
 				// Remove this part -> (OsuMain.startupValue > 0) ? ("a" + OsuMain.startupValue) // And leave this one -> Scrobbler.last.BeatmapId.ToString()
@@ -407,7 +329,7 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);;
 			}),
-			new Patch("Remove check if filename is \"osu!.exe\"", (patch, exp) =>
+			new Patch("Remove check if filename is \"osu!.exe\"", (patcher, patch, exp) =>
 			{
 				exp["osu.OsuMain"]["Main"].Editor.LocateAndNop(new[]
 				{
@@ -429,121 +351,8 @@ namespace OsuPatchPlugin.Misc
 
 				return new PatchResult(patch, PatchStatus.Success);;
 			}),
-			new Patch("Switch servers to Astellia", (patch, exp) =>
-			{
-				var set_Url = exp["osu_common.Helpers.pWebRequest"]["set_Url"].Editor;
-				set_Url.NopAt(0, 17);
-				set_Url.InsertAt(0, (pWebRequest @this, string value) =>
-				{
-					value = value
-						.Replace("osu.ppy.sh", "astellia.club")
-						.Replace("c.ppy.sh", "c.astellia.club")
-						.Replace("c4.ppy.sh", "c.astellia.club")
-						.Replace("c5.ppy.sh", "c.astellia.club")
-						.Replace("c6.ppy.sh", "c.astellia.club")
-						.Replace("a.ppy.sh", "a.astellia.club");
-					@this.url = value;
-				});
-				return new PatchResult(patch, PatchStatus.Success);
-			}),
-			// Can't find name.
-			/*new Patch("Pippi", true, (patch, exp) => 
-			{
-				var autoPlay = exp["osu.GameModes.Play.Rulesets.Osu.RulesetOsu"]["AddFrameToReplay"].Editor;
-				autoPlay.InsertAt(0, (List<bReplayFrame> replay, bReplayFrame frame) =>
-				{
-					var addAngleAmount = Ruleset.Instance.hitObjectManager.HitObjectRadius * 0.98f;
-					var angle = frame.time / 200f;
-					Vector2 vector = addAngleAmount * new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
-					frame.mouseX += vector.X;
-					frame.mouseY += vector.Y;
-				});
-				return new PatchResult(patch, PatchStatus.Success);
-			}) */
 		}; 
 #endif
 		public void Load(ModuleDef originalObfOsuModule) { }
-
-#region AsukiAddon
-		private class IlStringBuilder
-		{
-			public List<Instruction> Instructions = new List<Instruction>();
-
-			private byte _stackCounter;
-
-			private static MemberRef _stringConcat;
-
-			public IlStringBuilder(ModuleDef module)
-			{
-				var mod = _stringConcat?.Module;
-
-				if (mod != null && mod == module)
-					return;
-
-				_stringConcat = module.CreateMethodRef(true, typeof(String), "Concat", typeof(string), typeof(string), typeof(string));
-			}
-
-			public void Add(Instruction ins)
-			{
-				Instructions.Add(ins);
-				_stackCounter++;
-
-				if (_stackCounter >= 2)
-				{
-					Instructions.Add(Instruction.Create(OpCodes.Call, _stringConcat));
-					_stackCounter = 1;
-				}
-			}
-
-			public void Add(string str) =>
-				Add(Instruction.Create(OpCodes.Ldstr, str));
-		}
-
-		private static IList<Instruction> AsukiPatch_CreateServersArrayInitializer(ModuleExplorer exp, IList<string> addrList)
-		{
-			var ret = new List<Instruction>();
-
-			ret.AddRange(new[]
-			{
-				Instruction.CreateLdcI4(addrList.Count),
-				Instruction.Create(OpCodes.Newarr, exp.Module.CorLibTypes.String)
-			});
-
-			for (int i = 0; i < addrList.Count; i++)
-			{
-				ret.AddRange(new[]
-				{
-					Instruction.Create(OpCodes.Dup),
-					Instruction.CreateLdcI4(i),
-					Instruction.Create(OpCodes.Ldstr, addrList[i]),
-					Instruction.Create(OpCodes.Stelem_Ref)
-				});
-			}
-
-			return ret;
-		}
-
-		private static IList<Instruction> AsukiPatch_UniversalizeOsuURL(ModuleExplorer exp, string str, FieldDef baseUrlField, string baseUrl = OSU_BASE_URL)
-		{
-			var parts = str.Split(new[] { baseUrl }, StringSplitOptions.None);
-
-			if (parts.Length == 2)
-			{
-				var sb = new IlStringBuilder(exp.Module);
-
-				if (!String.IsNullOrEmpty(parts[0]))
-					sb.Add(parts[0]);
-
-				sb.Add(Instruction.Create(OpCodes.Ldsfld, baseUrlField));
-
-				if (!String.IsNullOrEmpty(parts[1]))
-					sb.Add(parts[1]);
-
-				return sb.Instructions;
-			}
-
-			return new List<Instruction> { Instruction.Create(OpCodes.Ldstr, str) };
-		}
-#endregion
 	}
 }
