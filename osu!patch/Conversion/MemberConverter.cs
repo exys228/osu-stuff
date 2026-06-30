@@ -26,6 +26,7 @@ namespace osu_patch.Conversion
 			MethodAttributes.Family |
 			MethodAttributes.FamORAssem |
 			MethodAttributes.Public;
+		private static readonly Dictionary<string, ModuleDefMD> _sourceModuleCache = new Dictionary<string, ModuleDefMD>();
 
 		private static List<string> _methodBlackList = new List<string>()
 		{
@@ -37,6 +38,68 @@ namespace osu_patch.Conversion
 			_typeExplorer = typeExplorer;
 			_moduleExplorer = typeExplorer.GetRoot();
 			_sourceDeclaringType = sourceDeclaringType;
+		}
+
+		public bool IsDllImport(MethodInfo methodInfo)
+		{
+			if ((methodInfo.Attributes & System.Reflection.MethodAttributes.PinvokeImpl) == 0)
+				return false;
+
+			var methodDef = ResolveSourceMethodDef(methodInfo);
+			return methodDef?.HasImplMap ?? true;
+		}
+
+		public MethodDefUser MethodInfoToDllImportMethodDef(MethodInfo methodInfo, string name, MethodSig methodSig)
+		{
+			var sourceMethod = ResolveSourceMethodDef(methodInfo);
+			if (sourceMethod?.ImplMap == null)
+				throw new ArgumentException("Method is not a DllImport method.", nameof(methodInfo));
+
+			var newMethodDef = new MethodDefUser(name, methodSig, sourceMethod.ImplAttributes, sourceMethod.Attributes)
+			{
+				ImplMap = new ImplMapUser(
+					new ModuleRefUser(_moduleExplorer.Module, sourceMethod.ImplMap.Module.Name),
+					sourceMethod.ImplMap.Name,
+					sourceMethod.ImplMap.Attributes)
+			};
+
+			foreach (var sourceParam in sourceMethod.ParamDefs)
+			{
+				var paramDef = new ParamDefUser(sourceParam.Name, sourceParam.Sequence, sourceParam.Attributes)
+				{
+					MarshalType = sourceParam.MarshalType
+				};
+
+				newMethodDef.ParamDefs.Add(paramDef);
+			}
+
+			return newMethodDef;
+		}
+
+		private static MethodDef ResolveSourceMethodDef(MethodInfo methodInfo)
+		{
+			try
+			{
+				var modulePath = methodInfo.Module.FullyQualifiedName;
+				if (string.IsNullOrEmpty(modulePath))
+					return null;
+
+				ModuleDefMD sourceModule;
+				lock (_sourceModuleCache)
+				{
+					if (!_sourceModuleCache.TryGetValue(modulePath, out sourceModule))
+					{
+						sourceModule = ModuleDefMD.Load(modulePath);
+						_sourceModuleCache[modulePath] = sourceModule;
+					}
+				}
+
+				return sourceModule.ResolveToken((uint)methodInfo.MetadataToken) as MethodDef;
+			}
+			catch
+			{
+				return null;
+			}
 		}
 		
 		public MethodSig MethodInfoToMethodSig(MethodInfo methInfo, bool hasThis = false, bool forceStatic = false) =>

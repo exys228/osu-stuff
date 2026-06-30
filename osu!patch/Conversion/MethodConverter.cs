@@ -20,6 +20,8 @@ namespace osu_patch.Conversion
 
 		private BodyConverter _bodyConverter;
 		private MemberConverter _memberConverter;
+		private MethodInfo _sourceMethod;
+		private bool _isDllImport;
 		
 		private bool _hasThis;
 
@@ -37,7 +39,9 @@ namespace osu_patch.Conversion
 			_methodSig = memberConverter.MethodInfoToMethodSig(method, hasThis, forceStatic);
 			_parameters = new List<ParameterInfo>(method.GetParameters());
 			_returnType = method.ReturnType;
-			_bodyConverter = new BodyConverter(method, memberConverter, importing);
+			_isDllImport = memberConverter.IsDllImport(method);
+			_sourceMethod = method;
+			_bodyConverter = _isDllImport ? null : new BodyConverter(method, memberConverter, importing);
 			_hasThis = hasThis;
 		}
 		
@@ -57,15 +61,20 @@ namespace osu_patch.Conversion
 
 		public MethodDefUser ToMethodDef(bool forceBodyRebuild = false)
 		{
-			var newMethodDef = new MethodDefUser(_name, _methodSig, MethodImplAttributes.IL | MethodImplAttributes.Managed)
-			{
-				Body = _bodyConverter.ToCilBody(forceBodyRebuild)
-			};
+			var newMethodDef = _isDllImport ?
+				_memberConverter.MethodInfoToDllImportMethodDef(_sourceMethod, _name, _methodSig) :
+				new MethodDefUser(_name, _methodSig, MethodImplAttributes.IL | MethodImplAttributes.Managed)
+				{
+					Body = _bodyConverter.ToCilBody(forceBodyRebuild)
+				};
 
 			var idx = _hasThis ? 1 : 0;
 
-			for (int i = idx; i < _parameters.Count; i++)
-				newMethodDef.ParamDefs.Add(new ParamDefUser(_parameters[i].Name, (ushort)(i + (idx ^ 1)), (ParamAttributes)_parameters[i].Attributes));
+			if (!_isDllImport)
+			{
+				for (int i = idx; i < _parameters.Count; i++)
+					newMethodDef.ParamDefs.Add(new ParamDefUser(_parameters[i].Name, (ushort)(i + (idx ^ 1)), (ParamAttributes)_parameters[i].Attributes));
+			}
 
 			newMethodDef.ReturnType = _memberConverter.ImportAsOsuModuleType(_returnType).ToTypeSig();
 			return newMethodDef;

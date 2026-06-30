@@ -208,7 +208,7 @@ namespace osu_patch.Explorers
 			else
 				convertedMethodDef = new MethodConverter(method as ConstructorInfo, this, importing, hasThis).ToMethodExplorer();
 
-			convertedMethodDef.Method.Attributes = attributes | MethodAttributes.HideBySig;
+			convertedMethodDef.Method.Attributes = attributes | MethodAttributes.HideBySig | (convertedMethodDef.Method.Attributes & MethodAttributes.PinvokeImpl);
 
 			//foreach (var param in paramList)
 			//	convertedMethodDef.Method.ParamDefs.Add(new ParamDefUser(param.Name, (ushort)param.Position, (ParamAttributes)param.Attributes));
