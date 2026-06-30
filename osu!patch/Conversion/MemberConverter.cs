@@ -19,6 +19,14 @@ namespace osu_patch.Conversion
 		private ModuleExplorer _moduleExplorer;
 		private TypeExplorer _typeExplorer;
 		private Type _sourceDeclaringType;
+		private const MethodAttributes MethodAccessMask =
+			MethodAttributes.Private |
+			MethodAttributes.FamANDAssem |
+			MethodAttributes.Assembly |
+			MethodAttributes.Family |
+			MethodAttributes.FamORAssem |
+			MethodAttributes.Public;
+
 		private static List<string> _methodBlackList = new List<string>()
 		{
 			"GetEnumerator"
@@ -229,7 +237,7 @@ namespace osu_patch.Conversion
 					var fieldName = _moduleExplorer.NameProvider.GetName(memberInfo.Name, true);
 					var resolvedField = importedType.FindField(fieldName) ?? importedType.FindField(memberInfo.Name);
 					if (resolvedField != null)
-						return resolvedField;
+						return PublicizeResolvedHookMember(memberInfo, resolvedField);
 
 					return new MemberRefUser(_moduleExplorer.Module, fieldName, FieldInfoToFieldSig(fieldInfo), importedOsuType);
 
@@ -238,8 +246,11 @@ namespace osu_patch.Conversion
 						return _moduleExplorer.Module.Import((MethodBase)memberInfo);
 
 					var ctorInfo = (ConstructorInfo)memberInfo;
-					return importedType.FindMethod(ctorInfo.Name, MethodInfoToMethodSig(typeof(void), ctorInfo))
-						?? _moduleExplorer.Module.Import((MethodBase)memberInfo);
+					var resolvedConstructor = importedType.FindMethod(ctorInfo.Name, MethodInfoToMethodSig(typeof(void), ctorInfo));
+					if (resolvedConstructor != null)
+						return PublicizeResolvedHookMember(memberInfo, resolvedConstructor);
+
+					return _moduleExplorer.Module.Import((MethodBase)memberInfo);
 
 				case MemberTypes.Method:
 					// TODO: rework dependencies and remove this dirty fix
@@ -268,13 +279,14 @@ namespace osu_patch.Conversion
 								genericInstSig.GenericArguments[i] = ImportAsOsuModuleType(memberInfo.DeclaringType.GenericTypeArguments[i]).ToTypeSig();
 							}
 						}
+						PublicizeResolvedHookMember(memberInfo, importedType.FindMethod(name, methodSig) ?? importedType.FindMethod(methodInfo.Name, methodSig));
 						return new MemberRefUser(_moduleExplorer.Module, name, methodSig, importedOsuType as TypeSpecUser);
 					}
 					else
 					{
 						var resolvedMethod = importedType.FindMethod(name, methodSig);
 						if (resolvedMethod != null)
-							return resolvedMethod;
+							return PublicizeResolvedHookMember(memberInfo, resolvedMethod);
 
 						return new MemberRefUser(_moduleExplorer.Module, name, methodSig, importedOsuType);
 					}
@@ -283,6 +295,54 @@ namespace osu_patch.Conversion
 					throw new ArgumentOutOfRangeException();
 			}
 		}
+		private static IMemberRef PublicizeResolvedHookMember(MemberInfo sourceMember, IMemberRef targetMember)
+		{
+			if (targetMember == null || sourceMember?.DeclaringType == null || !PatcherCache.IsHookAssembly(sourceMember.DeclaringType.Assembly))
+				return targetMember;
+
+			if (targetMember is MethodDef method && NeedsPublicAccess(method.Attributes))
+				method.Attributes = (method.Attributes & ~MethodAccessMask) | MethodAttributes.Public;
+			else if (targetMember is FieldDef field && NeedsPublicAccess(field.Attributes))
+				field.Attributes = (field.Attributes & ~FieldAttributes.FieldAccessMask) | FieldAttributes.Public;
+
+			return targetMember;
+		}
+
+		private static TypeDef PublicizeResolvedHookType(Type sourceType, TypeDef targetType)
+		{
+			if (targetType == null || sourceType == null || !PatcherCache.IsHookAssembly(sourceType.Assembly))
+				return targetType;
+
+			if (targetType.IsNested && NeedsPublicAccess(targetType.Attributes))
+				targetType.Attributes = (targetType.Attributes & ~TypeAttributes.VisibilityMask) | TypeAttributes.NestedPublic;
+
+			return targetType;
+		}
+
+		private static bool NeedsPublicAccess(MethodAttributes attributes)
+		{
+			var access = attributes & MethodAccessMask;
+			return access == MethodAttributes.Private ||
+				   access == MethodAttributes.FamANDAssem ||
+				   access == MethodAttributes.Family;
+		}
+
+		private static bool NeedsPublicAccess(FieldAttributes attributes)
+		{
+			var access = attributes & FieldAttributes.FieldAccessMask;
+			return access == FieldAttributes.Private ||
+				   access == FieldAttributes.FamANDAssem ||
+				   access == FieldAttributes.Family;
+		}
+
+		private static bool NeedsPublicAccess(TypeAttributes attributes)
+		{
+			var visibility = attributes & TypeAttributes.VisibilityMask;
+			return visibility == TypeAttributes.NestedPrivate ||
+				   visibility == TypeAttributes.NestedFamANDAssem ||
+				   visibility == TypeAttributes.NestedFamily;
+		}
+
 		private IMemberRef ResolveCopiedPatcherMember(MemberInfo memberInfo)
 		{
 			var explorer = EnsurePatcherType(memberInfo.DeclaringType);
@@ -431,11 +491,11 @@ namespace osu_patch.Conversion
 			// from this point we know that type argument is definitely a Type from OsuHooks assembly
 
 			if (type.IsNested)
-				return UnnestType(type);
+				return PublicizeResolvedHookType(type, UnnestType(type));
 
 			if (type.IsGenericType)
 			{
-				var osuType = _moduleExplorer[type.FullName.Split('[')[0]].Type;
+				var osuType = PublicizeResolvedHookType(type, _moduleExplorer[type.FullName.Split('[')[0]].Type);
 				var typeGenericArguments = type.GetGenericArguments();
 				var genArgs = new List<TypeSig>();
 				for (var i = 0; i < typeGenericArguments.Length; i++)
@@ -449,7 +509,7 @@ namespace osu_patch.Conversion
 				return converted;
 			}
 
-			return _moduleExplorer[type.FullName].Type;
+			return PublicizeResolvedHookType(type, _moduleExplorer[type.FullName].Type);
 		}
 
 		private TypeDef UnnestType(Type type) =>
